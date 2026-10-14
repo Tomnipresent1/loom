@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "kind": "scene",
+  "name": "garden",
+  "size": [2000, 5000],
+  "ground": { "colour": "#0b1020", "speckle": "#2a3557" },
+  "camera": { "follow": "player", "view": 700 },
+  "vars": {},
+  "place": [
+    { "id": "player", "thing": "player", "at": [800, 560, 0] },
+    { "id": "sphere1", "thing": "glow-sphere", "at": [400, 300, 0], "set": { "colour": "#ffcf7a", "pitch": 0 } },
+    { "id": "sphere2", "thing": "glow-sphere", "at": [1054, 400, 0], "set": { "colour": "#ff9fb5", "pitch": 2 } },
+    { "id": "sphere3", "thing": "glow-sphere", "at": [1360, 860, 0], "set": { "colour": "#b6f0a8", "pitch": 4 } },
+    { "id": "sphere4", "thing": "glow-sphere", "at": [260, 880, 0], "set": { "colour": "#9fd0ff", "pitch": 7 } },
+    { "id": "sphere5", "thing": "glow-sphere", "at": [800, 430, 0], "set": { "colour": "#d2b0ff", "pitch": 9 } },
+    { "id": "mote1", "thing": "mote", "at": [500, 470, 0], "set": { "colour": "#7fd6ff" } },
+    { "id": "mote2", "thing": "mote", "at": [260, 670, 0], "set": { "colour": "#8aceff" } },
+    { "id": "mote3", "thing": "mote", "at": [530, 500, 0], "set": { "colour": "#7fd6ff" } },
+    { "id": "mote4", "thing": "mote", "at": [290, 700, 0], "set": { "colour": "#8aceff" } },
+    { "id": "mote5", "thing": "mote", "at": [560, 530, 0], "set": { "colour": "#7fd6ff" } },
+    { "id": "mote6", "thing": "mote", "at": [320, 730, 0], "set": { "colour": "#8aceff" } },
+    { "id": "mote7", "thing": "mote", "at": [590, 560, 0], "set": { "colour": "#7fd6ff" } },
+    { "id": "mote8", "thing": "mote", "at": [350, 760, 0], "set": { "colour": "#8aceff" } },
+    { "id": "mote9", "thing": "mote", "at": [620, 590, 0], "set": { "colour": "#7fd6ff" } },
+    { "id": "mote10", "thing": "mote", "at": [380, 790, 0], "set": { "colour": "#8aceff" } },
+    { "id": "mote11", "thing": "mote", "at": [650, 620, 0], "set": { "colour": "#7fd6ff" } },
+    { "id": "mote12", "thing": "mote", "at": [410, 820, 0], "set": { "colour": "#8aceff" } },
+    { "id": "mote13", "thing": "mote", "at": [680, 650, 0], "set": { "colour": "#7fd6ff" } },
+    { "id": "mote14", "thing": "mote", "at": [440, 850, 0], "set": { "colour": "#8aceff" } },
+    { "id": "mote15", "thing": "mote", "at": [710, 680, 0], "set": { "colour": "#7fd6ff" } }
+  ]
+}

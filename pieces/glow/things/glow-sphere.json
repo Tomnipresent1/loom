@@ -1,0 +1,107 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "glow-sphere",
+  "vars": {
+    "colour": { "type": "colour", "value": "#ffcf7a", "perCopy": true },
+    "glows": { "type": "whole", "value": 0 },
+    "pitch": { "type": "number", "value": 0, "perCopy": true }
+  },
+  "frames": [
+    { "title": "glow while the mote ring is round me", "at": [20, 30], "size": [550, 330], "colour": "#c9a227" },
+    {
+      "title": "count the glows: down and up again until the 3rd",
+      "at": [580, 30],
+      "size": [540, 350],
+      "colour": "#3cc7b5"
+    },
+    {
+      "title": "3rd glow at the top: tell the player, vanish",
+      "at": [1140, 30],
+      "size": [540, 160],
+      "colour": "#4a8cf0"
+    },
+    { "title": "the 3rd glow is twice as big", "at": [300, 400], "size": [1100, 300], "colour": "#9a7ad0" },
+    { "title": "light and body", "at": [1420, 380], "size": [260, 320], "colour": "#6b4f99" },
+    {
+      "title": "sound: hums its own note as it glows, chimes at each peak",
+      "at": [1140, 720],
+      "size": [540, 360],
+      "colour": "#c06f9a"
+    },
+    {
+      "title": "is the mote ring round me? (my distance from its middle < 60% of its size)",
+      "at": [20, 720],
+      "size": [1110, 360],
+      "colour": "#3cc7b5"
+    }
+  ],
+  "nodes": {
+    "ramp": {
+      "type": "ramp",
+      "at": [320, 80],
+      "set": { "seconds": 2, "from": 0, "to": 1, "curve": { "keys": [[0, 0, 0, 0], [1, 1.195, 0, 0]] }, "loop": "none" }
+    },
+    "count": { "type": "add-to-var", "at": [600, 80], "set": { "var": "glows", "amount": 1 } },
+    "enough": { "type": "branch", "at": [880, 80] },
+    "again": { "type": "branch", "at": [600, 250] },
+    "reset": { "type": "set-var", "at": [880, 250], "set": { "var": "glows", "value": 0 } },
+    "tell": { "type": "send", "at": [1160, 80], "set": { "message": "one-more", "mode": "one" } },
+    "vanish": { "type": "remove-me", "at": [1440, 80] },
+    "glows": { "type": "get-var", "at": [320, 450], "set": { "var": "glows" } },
+    "number": { "type": "to-number", "at": [600, 450] },
+    "done": { "type": "compare", "at": [880, 420], "set": { "b": 3, "op": "≥" } },
+    "last": { "type": "compare", "at": [880, 560], "set": { "b": 2, "op": "=" } },
+    "size": { "type": "pick", "at": [1160, 560], "set": { "ifYes": 300, "ifNo": 150 } },
+    "tint": { "type": "get-var", "at": [1160, 430], "set": { "var": "colour" } },
+    "glow": { "type": "light", "at": [1440, 430] },
+    "core": { "type": "shape", "at": [1440, 570], "set": { "radius": 14, "opacity": 0.55 } },
+    "pitch": { "type": "get-var", "at": [1160, 770], "set": { "var": "pitch" } },
+    "hum": {
+      "type": "hum",
+      "at": [1440, 770],
+      "set": { "note": "D3", "tone": "airy", "near": 350, "space": 0.86, "echo": 1.15 }
+    },
+    "peak": { "type": "chime", "at": [1160, 900], "set": { "note": "E5", "tone": "bell", "volume": 0.35 } },
+    "edge": { "type": "on-change", "at": [40, 80] },
+    "swarm": { "type": "group-middle", "at": [40, 770], "set": { "kind": "mote" } },
+    "where": { "type": "position-of", "at": [40, 940] },
+    "dist": { "type": "distance", "at": [320, 780] },
+    "margin": { "type": "math", "at": [320, 900], "set": { "b": 0.6, "op": "×" } },
+    "inRing": { "type": "compare", "at": [600, 800], "set": { "op": "<" } },
+    "player": { "type": "find", "at": [880, 800], "set": { "kind": "player" } }
+  },
+  "wires": [
+    ["edge.turnedYes", "ramp.play"],
+    ["edge.turnedNo", "ramp.reverse"],
+    ["ramp.reachedTop", "peak.go"],
+    ["peak.then", "count.go"],
+    ["count.then", "enough.go"],
+    ["done.result", "enough.condition"],
+    ["enough.yes", "tell.go"],
+    ["enough.no", "ramp.reverse"],
+    ["ramp.backToBottom", "again.go"],
+    ["inRing.result", "again.condition"],
+    ["again.yes", "ramp.play"],
+    ["again.no", "reset.go"],
+    ["player.thing", "tell.to"],
+    ["tell.then", "vanish.go"],
+    ["glows.value", "number.value"],
+    ["number.value", "done.a"],
+    ["number.value", "last.a"],
+    ["last.result", "size.condition"],
+    ["size.value", "glow.radius"],
+    ["ramp.value", "glow.brightness"],
+    ["tint.value", "glow.colour"],
+    ["tint.value", "core.colour"],
+    ["ramp.value", "hum.volume"],
+    ["pitch.value", "hum.bend"],
+    ["pitch.value", "peak.bend"],
+    ["where.position", "dist.a"],
+    ["swarm.middle", "dist.b"],
+    ["swarm.spread", "margin.a"],
+    ["dist.result", "inRing.a"],
+    ["margin.result", "inRing.b"],
+    ["inRing.result", "edge.value"]
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "kind": "piece",
+  "name": "Glow garden",
+  "start": "garden",
+  "messages": { "one-more": { "about": "a glow-sphere tells the player it has been picked" } },
+  "vars": {},
+  "sounds": {
+    "garden-air.wav": { "credit": "made by LOOM (tools/make-demo-sounds.mjs)", "licence": "my own" },
+    "pick-sparkle.wav": { "credit": "made by LOOM (tools/make-demo-sounds.mjs)", "licence": "my own" },
+    "Hal voice test 1.wav": { "credit": "Tom VibeVoice Hal Clone" }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "player",
+  "vars": { "collected": { "type": "whole", "value": 0 } },
+  "frames": [
+    { "title": "count each pick", "at": [20, 30], "size": [1330, 480], "colour": "#4a6fa5" },
+    { "title": "body, movement and the garden air", "at": [20, 520], "size": [1060, 300], "colour": "#6b4f99" }
+  ],
+  "nodes": {
+    "start": { "type": "on-start", "at": [40, 80] },
+    "got": { "type": "on-message", "at": [40, 190], "set": { "message": "one-more" } },
+    "add": { "type": "add-to-var", "at": [300, 190], "set": { "var": "collected", "amount": 1 } },
+    "cheer": { "type": "say", "at": [560, 190], "set": { "slot": "middle", "seconds": 2, "text": "one more" } },
+    "tally": { "type": "say", "at": [820, 80], "set": { "slot": "corner", "seconds": 0 } },
+    "count": { "type": "get-var", "at": [300, 350], "set": { "var": "collected" } },
+    "label": { "type": "text-format", "at": [560, 350], "set": { "pattern": "{value} of 5" } },
+    "walk": { "type": "move-with-input", "at": [40, 560], "set": { "speed": 500, "glide": 0.35 } },
+    "body": { "type": "shape", "at": [300, 560], "set": { "radius": 9, "colour": "#f4efe6" } },
+    "halo": { "type": "light", "at": [560, 560], "set": { "brightness": 0.35, "radius": 70, "colour": "#cfe3ff" } },
+    "bell": { "type": "chime", "at": [820, 260], "set": { "note": "A5", "tone": "bell", "volume": 0.5 } },
+    "sparkle": {
+      "type": "play-sound",
+      "at": [1080, 190],
+      "set": { "sound": "Hal voice test 1.wav", "volume": 0.7, "vary": 0, "space": 0.4, "echo": 0.1 }
+    },
+    "air": {
+      "type": "sound-loop",
+      "at": [820, 560],
+      "set": { "sound": "garden-air.wav", "volume": 0.35, "space": 0.5 }
+    }
+  },
+  "wires": [
+    ["start.started", "tally.go"],
+    ["got.received", "add.go"],
+    ["add.then", "bell.go"],
+    ["bell.then", "sparkle.go"],
+    ["sparkle.then", "cheer.go"],
+    ["cheer.then", "tally.go"],
+    ["count.value", "label.value"],
+    ["label.text", "tally.text"]
+  ]
+}

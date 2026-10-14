@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "mote",
+  "vars": { "colour": { "type": "colour", "value": "#9fe0ff", "perCopy": true } },
+  "frames": [
+    { "title": "follow the player (a little behind)", "at": [20, 20], "size": [830, 200], "colour": "#c9a227" },
+    {
+      "title": "go round them in a ring, with a ripple running round it",
+      "at": [20, 240],
+      "size": [1660, 440],
+      "colour": "#3cc7b5"
+    },
+    { "title": "how it looks", "at": [860, 700], "size": [820, 290], "colour": "#6b4f99" }
+  ],
+  "nodes": {
+    "player": { "type": "find", "at": [40, 70], "set": { "kind": "player" } },
+    "where": { "type": "position-of", "at": [320, 70] },
+    "follow": { "type": "follow", "at": [600, 70], "set": { "lag": 0.2 } },
+    "shift": { "type": "group-place", "at": [40, 330] },
+    "bumps": { "type": "math", "at": [320, 330], "set": { "b": 0, "op": "×" } },
+    "ripple": { "type": "wave", "at": [600, 330], "set": { "middle": 90, "size": 15, "speed": 0.4, "shape": "sine" } },
+    "waveX": { "type": "wave", "at": [880, 290], "set": { "speed": 1, "shape": "sine" } },
+    "waveY": { "type": "wave", "at": [880, 500], "set": { "speed": 0.2, "shape": "sine" } },
+    "spot": { "type": "make-position", "at": [1160, 400], "set": { "z": 0 } },
+    "place": { "type": "place-at", "at": [1440, 400] },
+    "tint": { "type": "get-var", "at": [880, 760], "set": { "var": "colour" } },
+    "glow": { "type": "light", "at": [1160, 730], "set": { "brightness": 0.8, "radius": 45 } },
+    "body": { "type": "shape", "at": [1160, 860], "set": { "radius": 4, "opacity": 0.95 } },
+    "trail": { "type": "trail", "at": [1440, 730], "set": { "seconds": 0.2, "width": 3, "brightness": 5 } }
+  },
+  "wires": [
+    ["player.thing", "where.thing"],
+    ["where.position", "follow.target"],
+    ["follow.x", "waveX.middle"],
+    ["follow.y", "waveY.middle"],
+    ["shift.fraction", "bumps.a"],
+    ["bumps.result", "ripple.shift"],
+    ["ripple.value", "waveX.size"],
+    ["ripple.value", "waveY.size"],
+    ["shift.fraction", "waveX.shift"],
+    ["shift.fraction", "waveY.shift"],
+    ["waveX.value", "spot.x"],
+    ["waveY.value", "spot.y"],
+    ["spot.position", "place.position"],
+    ["tint.value", "glow.colour"],
+    ["tint.value", "body.colour"],
+    ["tint.value", "trail.colour"]
+  ]
+}

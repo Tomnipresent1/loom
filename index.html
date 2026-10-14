@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<meta name="mobile-web-app-capable" content="yes">
+<title>LOOM</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  canvas { display: block; touch-action: none; width: 100vw; height: 100vh; }
+  #snd { right: 52px !important; }
+  #fs, #snd { position: fixed; top: 10px; right: 8px; z-index: 5; width: 36px; height: 36px; border: 1px solid rgba(220,230,255,.25); border-radius: 8px; background: rgba(20,28,52,.5); color: #cfd8f0; font: 15px/1 Georgia, serif; padding: 0; }
+  #problems { display: none; position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 9; max-height: 60vh; overflow: auto; background: #3a0d12; color: #fff; font: 13px/1.45 monospace; padding: 10px 12px; border-radius: 8px; white-space: pre-wrap; }
+  #problems.show { display: block; }
+  /* the home page (no ?piece=): a list of pieces to tap */
+  #pieces { display: none; box-sizing: border-box; height: 100%; overflow: auto; padding: 48px 20px; color: #cfd8f0; font: 17px/1.4 Georgia, serif; -webkit-user-select: auto; user-select: auto; }
+  #pieces h1 { margin: 0 0 6px; font-size: 22px; font-weight: normal; letter-spacing: .3em; }
+  #pieces p { margin: 0 0 28px; color: #7f8bab; font-size: 14px; }
+  #pieces a { display: block; margin: 0 0 12px; padding: 18px 20px; border: 1px solid rgba(220,230,255,.25); border-radius: 12px; background: rgba(20,28,52,.6); color: #f4efe6; text-decoration: none; }
+  #pieces a span { display: block; color: #7f8bab; font-size: 13px; margin-top: 2px; }
+  body.home #pieces { display: block; }
+  body.home canvas, body.home #fs, body.home #snd { display: none; }
+</style>
+<meta name="loom-published" content="2026-10-14 09:41">
+</head>
+<body>
+<canvas id="screen"></canvas>
+<button id="fs" aria-label="Fullscreen">⛶</button>
+<button id="snd" aria-label="Sound on or off" title="sound on / off">♪</button>
+<div id="problems"></div>
+<div id="pieces"><h1>LOOM</h1><p>Tap a piece to play it.</p><div id="piecelist">…</div></div>
+<script type="module">
+  // /?piece=glow plays that piece; the bare address lists the pieces to choose from.
+  if (new URLSearchParams(location.search).get('piece')) import('./runtime/player.js');
+  else {
+    document.body.classList.add('home');
+    const list = document.getElementById('piecelist');
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const published = document.querySelector('meta[name="loom-published"]');   // the web copy: a plain list file
+    if (published) document.querySelector('#pieces p').textContent = `Tap a piece to play it. (Uploaded ${published.content}.)`;
+    fetch(published ? 'piece-list.json' : 'piece-list', { cache: 'no-store' }).then((r) => {
+      if (r.status === 404) throw new Error('old');                 // a server from before the piece list
+      return r.json();
+    }).then(({ pieces }) => {
+      list.innerHTML = pieces.map((p) => `<a href="?piece=${encodeURIComponent(p.id)}">${esc(p.name)}<span>${esc(p.id)}</span></a>`).join('') || 'No pieces yet.';
+    }).catch((e) => {
+      list.innerHTML = e.message === 'old'
+        ? 'LOOM on the PC needs a restart: close its black window and run Play.bat again, then refresh this page.<br><br><a href="?piece=glow">Play the Glow garden meanwhile<span>glow</span></a>'
+        : 'Couldn\'t reach LOOM. Is it running on the PC?';
+    });
+  }
+</script>
+<script>
+  // If anything goes wrong, say so on screen instead of showing a blank page.
+  window.addEventListener('error', function (e) {
+    var d = document.getElementById('problems');
+    d.textContent += 'Something went wrong: ' + (e.message || e) + '\n'; d.className = 'show';
+  });
+</script>
+</body>
+</html>
