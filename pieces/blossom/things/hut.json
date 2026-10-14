@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "hut",
+  "vars": {
+    "look": { "type": "picture", "value": "hut-single.png", "perCopy": true },
+    "wide": { "type": "number", "value": 160, "perCopy": true }
+  },
+  "frames": [
+    {
+      "title": "a thatched tea hut (chaya): its picture, and solid across its front",
+      "at": [20, 30],
+      "size": [520, 404],
+      "colour": "#c9a227"
+    }
+  ],
+  "nodes": {
+    "look": { "type": "get-var", "set": { "var": "look" }, "at": [40, 80] },
+    "wide": { "type": "get-var", "set": { "var": "wide" }, "at": [40, 194] },
+    "pic": { "type": "picture", "set": { "height": 520, "shadow": 0.3 }, "at": [290, 80] },
+    "walls": { "type": "solid", "set": { "radius": 240 }, "at": [290, 318] }
+  },
+  "wires": [["look.value", "pic.picture"], ["wide.value", "walls.width"]]
+}

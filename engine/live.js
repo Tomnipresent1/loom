@@ -9,8 +9,9 @@ export function liveShape(files) {
     nodes: Object.fromEntries(Object.entries(thing.nodes || {}).map(([id, n]) => [id, { ...n, set: undefined, at: undefined }])),
   });
   return JSON.stringify({
-    piece: { ...files.piece, sounds: undefined },             // sound credits: notes, nothing to restart for
-    scene: { ...files.scene, sound: undefined, place: (files.scene.place || []).map((p) => ({ ...p, set: undefined })) },   // room / echo: live
+    piece: { ...files.piece, sounds: undefined, pictures: undefined },   // sound / picture credits: notes, nothing to restart for
+    // room / echo, the camera, the colours and the paths: live (read afresh every frame)
+    scene: { ...files.scene, sound: undefined, camera: undefined, ground: undefined, sky: undefined, words: undefined, paths: undefined, place: (files.scene.place || []).map((p) => ({ ...p, set: undefined })) },
     things: Object.fromEntries(Object.entries(files.things).map(([k, t]) => [k, strip(t)])),
   });
 }

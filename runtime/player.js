@@ -4,7 +4,12 @@ import '../nodes/index.js';
 import { loadPiece } from '../engine/load.js';
 import { World } from '../engine/world.js';
 import { canPatchLive } from '../engine/live.js';
+import { cameraSettings, theatreAim } from '../engine/camera.js';
 import { createRenderer2D } from './render2d.js';
+import { createRendererTheatre } from './render-theatre.js';
+import { createPictures } from './pictures.js';
+import { createButtons } from './buttons.js';
+import { createCards } from './cards.js';
 import { createInput } from './input.js';
 import { connectLive } from './live.js';
 import { createAudio } from './audio.js';
@@ -18,7 +23,9 @@ const readJson = async (p) => {
 };
 
 const canvas = document.getElementById('screen');
-const renderer = createRenderer2D(canvas);
+const pictures = createPictures((f) => `${folder}pictures/${encodeURIComponent(f)}`);
+const buttons = createButtons((f) => `${folder}pictures/${encodeURIComponent(f)}`), cards = createCards(), pressed = [];
+const renderers = { map: createRenderer2D(canvas, { pictures }), theatre: createRendererTheatre(canvas, { pictures }) };   // the scene's camera style picks one
 const input = createInput(canvas);
 const problemsBox = document.getElementById('problems');
 document.getElementById('fs').onclick = () => {
@@ -57,12 +64,15 @@ function hearScene(l) {
   }
   audio.preload([...files]);
 }
-let missingShown = '';                                // sound files that couldn't be found, said on screen
+let missingShown = '';                                // sound and picture files that couldn't be found, said on screen
 function checkMissing() {
-  const m = audio.missing.join(', ');
+  const pics = [...pictures.missing], m = audio.missing.join(', ') + ' | ' + pics.join(', ');
   if (m === missingShown) return;
   missingShown = m;
-  if (m) showProblems([`sound file${audio.missing.length > 1 ? 's' : ''} not found: ${m} (they belong in ${folder}sounds/)`]);
+  const say = [];
+  if (audio.missing.length) say.push(`sound file${audio.missing.length > 1 ? 's' : ''} not found: ${audio.missing.join(', ')} (they belong in ${folder}sounds/)`);
+  if (pics.length) say.push(`picture${pics.length > 1 ? 's' : ''} not found: ${pics.join(', ')} (they belong in ${folder}pictures/)`);
+  if (say.length) showProblems(say);
 }
 
 async function load(changed) {
@@ -96,27 +106,47 @@ function frame(now) {
   last = now;
   if (!world) return;
   const scene = loaded.files.scene;
-  const view = (scene.camera && scene.camera.view) || 700;
-  const scale = Math.min(renderer.width, renderer.height) / view;
-  const follow = scene.camera && world.byId.get(scene.camera.follow);
+  const set = cameraSettings(scene), renderer = renderers[set.style];
+  const follow = set.follow && world.byId.get(set.follow);
   const want = follow ? follow.pos : [scene.size[0] / 2, scene.size[1] / 2];
-  if (!camera) camera = { x: want[0], y: want[1], scale };
-  camera.scale = scale;
-  camera.x += (want[0] - camera.x) * Math.min(1, dt * 4);
-  camera.y += (want[1] - camera.y) * Math.min(1, dt * 4);
+  if (camera && camera.style !== set.style) camera = null;          // the style was changed (live): start afresh
+  if (set.style === 'theatre') {
+    camera = { ...theatreAim(camera, set, want, dt), style: set.style, set, youX: want[0] };
+  } else {
+    const scale = Math.min(renderer.width, renderer.height) / set.view;
+    if (!camera) camera = { x: want[0], y: want[1], scale, style: set.style };
+    camera.scale = scale;
+    camera.x += (want[0] - camera.x) * Math.min(1, dt * 4);
+    camera.y += (want[1] - camera.y) * Math.min(1, dt * 4);
+  }
 
   const raw = input.poll();
   const target = raw.pointer ? renderer.toScene(camera, raw.pointer.x, raw.pointer.y) : null;
   spare += dt;
-  while (spare >= STEP) { world.step(STEP, { move: raw.move, target }); spare -= STEP; }
+  const finger = raw.pointer ? { id: raw.pointer.id, x: (raw.pointer.x / renderer.height) * 600 } : null;   // (picture units)
+  pressed.push(...buttons.take(), ...cards.take());   // button and card presses go to the next step only (once each)
+  while (spare >= STEP) { world.step(STEP, { move: raw.move, target, finger, pressed: pressed.splice(0) }); spare -= STEP; }
+  if (world.request) return answer(world.request);     // a Start again box asked: begin again, or leave
+  buttons.update(world.buttons());
+  cards.update(world.cards());
   audio.play(world.takeSounds());
   audio.hums(world.hums());
   checkMissing();
   if (note) note.age += dt;
-  renderer.frame({ camera, scene, draws: world.draws(), hud: world.hud, note });
+  renderer.frame({ camera, scene, draws: world.draws(), hud: world.hud, note, wash: world.wash(), bars: world.bars() });
+}
+// Start again: begin the scene afresh, keeping the piece's variables (e.g. the ink); or leave for the list of pieces
+// (inside the editor there is nowhere to leave to: it just begins again).
+function answer(request) {
+  if (request === 'leave' && window.top === window) { location.href = './'; return; }
+  const keep = world.pieceVars;
+  loaded = { files: loaded.files, blueprints: world.blueprints };
+  world = new World(loaded, { pieceVars: keep });
+  world.begin();
+  camera = null; pressed.length = 0;
 }
 
 // A handle for the Machine to look inside from the browser pane (read state, step time by hand). Harmless otherwise.
-window.LOOM = { get world() { return world; }, get loaded() { return loaded; }, STEP, audio };
+window.LOOM = { get world() { return world; }, get loaded() { return loaded; }, get camera() { return camera; }, STEP, audio };
 
 load(null).then(() => requestAnimationFrame(frame), (e) => showProblems([e.message]));

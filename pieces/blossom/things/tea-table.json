@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "tea-table",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the small round table in front of the tea house; people keep clear of the space around it",
+      "at": [20, 30],
+      "size": [520, 298],
+      "colour": "#a0764a"
+    },
+    {
+      "title": "the ikebana: three stems one at a time (1.25 s each), a moment to look at it, then the end",
+      "at": [20, 348],
+      "size": [1020, 666],
+      "colour": "#c06f9a"
+    },
+    {
+      "title": "the end of the stroll: a card (with blossom given, or not); WALK AGAIN begins again, the ink kept",
+      "at": [20, 1034],
+      "size": [1020, 580],
+      "colour": "#c9a227"
+    }
+  ],
+  "nodes": {
+    "pic": { "type": "picture", "set": { "picture": "table.png", "height": 65, "shadow": 0.4 }, "at": [40, 80] },
+    "solid": { "type": "solid", "set": { "radius": 45 }, "at": [290, 80] },
+    "clear": { "type": "keep-clear", "set": { "radius": 700 }, "at": [290, 186] },
+    "arrange": { "type": "on-message", "set": { "message": "arrange" }, "at": [40, 398] },
+    "empty": { "type": "on-message", "set": { "message": "empty-handed" }, "at": [40, 556] },
+    "shin": {
+      "type": "send",
+      "set": { "message": "stem", "mode": "kind", "kind": "stem", "data": 1 },
+      "at": [290, 398]
+    },
+    "soe": { "type": "send", "set": { "message": "stem", "mode": "kind", "kind": "stem", "data": 2 }, "at": [290, 600] },
+    "hikae": {
+      "type": "send",
+      "set": { "message": "stem", "mode": "kind", "kind": "stem", "data": 3 },
+      "at": [290, 802]
+    },
+    "gap1": { "type": "wait", "set": { "seconds": 1.25 }, "at": [540, 398] },
+    "gap2": { "type": "wait", "set": { "seconds": 1.25 }, "at": [540, 504] },
+    "regard": { "type": "wait", "set": { "seconds": 2.15 }, "at": [540, 610] },
+    "lingergave": { "type": "wait", "set": { "seconds": 1.6 }, "at": [40, 1084] },
+    "lingerempty": { "type": "wait", "set": { "seconds": 1.6 }, "at": [40, 1190] },
+    "countgave": { "type": "add-to-var", "set": { "var": "strolls", "amount": 1 }, "at": [290, 1084] },
+    "countempty": { "type": "add-to-var", "set": { "var": "strolls", "amount": 1 }, "at": [290, 1220] },
+    "gavecard": {
+      "type": "card",
+      "set": {
+        "title": "THE TEA HOUSE",
+        "line": "YOU HAVE FILLED THE VASE WITH BLOSSOMS",
+        "small": "恵み (blessings)",
+        "first": "WALK AGAIN",
+        "second": "HOME",
+        "wait": 2.3
+      },
+      "at": [540, 1084]
+    },
+    "emptycard": {
+      "type": "card",
+      "set": {
+        "title": "THE TEA HOUSE",
+        "line": "A STROLL THROUGH THE PLUM GARDEN",
+        "first": "WALK AGAIN",
+        "second": "HOME",
+        "wait": 2.3
+      },
+      "at": [540, 1344]
+    },
+    "again": { "type": "start-again", "set": { "where": "this scene" }, "at": [790, 1084] },
+    "home": { "type": "start-again", "set": { "where": "the list of pieces" }, "at": [790, 1198] }
+  },
+  "wires": [
+    ["arrange.received", "shin.go"],
+    ["shin.then", "gap1.go"],
+    ["gap1.then", "soe.go"],
+    ["soe.then", "gap2.go"],
+    ["gap2.then", "hikae.go"],
+    ["hikae.then", "regard.go"],
+    ["regard.then", "lingergave.go"],
+    ["empty.received", "lingerempty.go"],
+    ["lingergave.then", "countgave.go"],
+    ["lingerempty.then", "countempty.go"],
+    ["countgave.then", "gavecard.show"],
+    ["countempty.then", "emptycard.show"],
+    ["gavecard.chose1", "again.go"],
+    ["emptycard.chose1", "again.go"],
+    ["gavecard.chose2", "home.go"],
+    ["emptycard.chose2", "home.go"]
+  ]
+}

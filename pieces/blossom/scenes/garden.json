@@ -1,0 +1,144 @@
+{
+  "format": 1,
+  "kind": "scene",
+  "name": "garden",
+  "size": [6000, 16000],
+  "ground": { "colour": "#2b7869", "far": "#cfe2c2", "speckle": "#3c6e5a" },
+  "camera": {
+    "follow": "guide",
+    "style": "theatre",
+    "peopleFade": 80,
+    "peopleGone": 350,
+    "haze": 6000,
+    "back": 1950,
+    "horizon": 0.48
+  },
+  "vars": {
+    "basket": { "type": "whole", "value": 0 },
+    "lastBow": { "type": "number", "value": -99 },
+    "ending": { "type": "yesno", "value": false },
+    "given": { "type": "number", "value": 0 },
+    "paused": { "type": "yesno", "value": false }
+  },
+  "sky": { "top": "#cc361e", "low": "#f6d3b6" },
+  "paths": {
+    "main": {
+      "points": [
+        [2976, 16500],
+        [3067, 15500],
+        [3121, 14500],
+        [3128, 13500],
+        [3103, 12500],
+        [3077, 11500],
+        [3077, 10500],
+        [3110, 9500],
+        [3160, 8500],
+        [3194, 7500],
+        [3184, 6500],
+        [3121, 5500],
+        [3024, 4500],
+        [2926, 3500],
+        [2862, 2500],
+        [2847, 1500]
+      ],
+      "width": 1500
+    }
+  },
+  "scatters": {
+    "orchard": {
+      "thing": "plum-tree",
+      "path": "main",
+      "seed": 1857,
+      "count": 220,
+      "depth": 2500,
+      "hug": 0.4,
+      "gap": 70,
+      "apart": 280,
+      "onPath": 7,
+      "extend": 2500,
+      "vary": {
+        "look": [
+          "plum-1.png",
+          "plum-2.png",
+          "plum-3.png",
+          "plum-4.png",
+          "plum-5.png",
+          "plum-6.png",
+          "plum-7.png",
+          "plum-8.png"
+        ],
+        "size": [813, 1230],
+        "flip": [true, false]
+      },
+      "avoid": { "hut": 900, "tea-table": 700 }
+    },
+    "sprigs": {
+      "thing": "sprig",
+      "path": "main",
+      "seed": 7,
+      "count": 0,
+      "onPath": 10,
+      "apart": 700,
+      "extend": 0,
+      "avoid": { "orchard": 160, "hut": 700, "tea-table": 800 },
+      "vary": { "flip": [true, false] }
+    },
+    "admirers": {
+      "thing": "admirer",
+      "path": "main",
+      "seed": 21,
+      "count": 26,
+      "depth": 400,
+      "hug": 0.3,
+      "gap": -330,
+      "apart": 250,
+      "extend": 1500,
+      "avoid": { "orchard": 120, "sprigs": 220, "hut": 800, "tea-table": 900 },
+      "vary": { "outfit": [1, 14], "front": [true, false] }
+    },
+    "strollers": {
+      "thing": "stroller",
+      "path": "main",
+      "seed": 9,
+      "count": 0,
+      "onPath": 7,
+      "apart": 1500,
+      "extend": 0,
+      "avoid": { "sprigs": 200 },
+      "vary": { "outfit": [1, 14], "toward": [true, true, false] }
+    }
+  },
+  "place": [
+    { "id": "player", "thing": "player", "at": [3067, 15500, 0] },
+    { "id": "hut1", "thing": "hut", "at": [2270, 8930, 0], "set": { "look": "hut-double.png", "wide": 520 } },
+    { "id": "hut2", "thing": "hut", "at": [3784, 4500, 0], "set": { "look": "hut-single.png", "wide": 160 } },
+    { "id": "hut3", "thing": "hut", "at": [2157, -1000, 0], "set": { "look": "hut-single.png", "wide": 160 } },
+    { "id": "teatable", "thing": "tea-table", "at": [3434, 4870, 0] },
+    { "id": "vase", "thing": "vase", "at": [3434, 4870, 58] },
+    {
+      "id": "stem-shin",
+      "thing": "stem",
+      "at": [3411, 4950, 55],
+      "set": { "order": 1, "look": "stem-shin.png", "len": 68, "angle": 14, "note": 0 }
+    },
+    {
+      "id": "stem-soe",
+      "thing": "stem",
+      "at": [3411, 4950, 55],
+      "set": { "order": 2, "look": "stem-soe.png", "len": 50, "angle": -45, "note": 4 }
+    },
+    {
+      "id": "stem-hikae",
+      "thing": "stem",
+      "at": [3411, 4950, 55],
+      "set": { "order": 3, "look": "stem-hikae.png", "len": 35, "angle": 66, "note": 7 }
+    },
+    { "id": "keeper", "thing": "keeper", "at": [3554, 4765, 0] },
+    { "id": "teaspot", "thing": "offer-spot", "at": [3379, 4950, 0] },
+    { "id": "teagate", "thing": "tea-gate", "at": [3070, 4950, 0] },
+    { "id": "guide", "thing": "guide", "at": [3067, 15500, 0] },
+    { "id": "title", "thing": "title", "at": [3067, 15500, 0] },
+    { "id": "soundscape", "thing": "soundscape", "at": [3067, 15500, 0] }
+  ],
+  "words": "#16213b"
+}

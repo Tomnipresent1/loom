@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "keeper",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the tea-house keeper: bows back when she greets him",
+      "at": [20, 30],
+      "size": [770, 514],
+      "colour": "#3a4a5c"
+    }
+  ],
+  "nodes": {
+    "greeted": { "type": "on-message", "set": { "message": "greet" }, "at": [40, 80] },
+    "bow": { "type": "ramp", "set": { "seconds": 0.7, "curve": "ease-in-out" }, "at": [290, 80] },
+    "body": { "type": "figure", "set": { "outfit": 15, "apron": true, "front": true, "glance": 0.4 }, "at": [540, 80] },
+    "solid": { "type": "solid", "set": { "radius": 40 }, "at": [540, 428] }
+  },
+  "wires": [["greeted.received", "bow.play"], ["bow.reachedTop", "bow.reverse"], ["bow.value", "body.bow"]]
+}

@@ -1,0 +1,49 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "title",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the title, the first time only: PLUM BLOSSOM, then BEGIN (she stands still meanwhile)",
+      "at": [20, 30],
+      "size": [1270, 490],
+      "colour": "#a8452f"
+    }
+  ],
+  "nodes": {
+    "begin": { "type": "on-start", "at": [40, 80] },
+    "begun": { "type": "get-var", "set": { "var": "begun" }, "at": [40, 164] },
+    "first": { "type": "branch", "at": [290, 80] },
+    "hold": { "type": "set-var", "set": { "var": "paused", "value": true }, "at": [540, 80] },
+    "title": {
+      "type": "card",
+      "set": {
+        "title": "PLUM BLOSSOM",
+        "line": "AFTER HIROSHIGE, PLUM GARDEN AT KAMATA",
+        "first": "BEGIN",
+        "wait": 1,
+        "veil": 0.35
+      },
+      "at": [540, 216]
+    },
+    "go": { "type": "sequence", "at": [790, 80] },
+    "seen": { "type": "set-var", "set": { "var": "begun", "value": true }, "at": [1040, 80] },
+    "free": { "type": "set-var", "set": { "var": "paused", "value": false }, "at": [1040, 216] },
+    "how": {
+      "type": "say",
+      "set": { "text": "HOLD A FINGER TO WALK. SLIDE IT TO STEP ASIDE", "slot": "middle", "seconds": 6 },
+      "at": [1040, 352]
+    }
+  },
+  "wires": [
+    ["begin.started", "first.go"],
+    ["begun.value", "first.condition"],
+    ["first.no", "hold.go"],
+    ["hold.then", "title.show"],
+    ["title.chose1", "go.go"],
+    ["go.first", "seen.go"],
+    ["go.second", "free.go"],
+    ["go.third", "how.go"]
+  ]
+}

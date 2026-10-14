@@ -1,0 +1,71 @@
+{
+  "format": 1,
+  "kind": "piece",
+  "name": "Plum Blossom",
+  "start": "garden",
+  "messages": {
+    "gather": { "about": "a sprig tells the player she is picking it up" },
+    "bow": { "about": "someone bows to the player as she passes" },
+    "tea": { "about": "she has reached the tea house: the ending begins" },
+    "greet": { "about": "she greets the tea-house keeper" },
+    "arrange": { "about": "she sets her blossom in the vase" },
+    "empty-handed": { "about": "she reached the tea house with nothing to give" },
+    "stem": { "about": "the next ikebana stem (1 tall, 2 middle, 3 low) goes into the vase" }
+  },
+  "vars": {
+    "begun": { "type": "yesno", "value": false },
+    "strolls": { "type": "whole", "value": 0 },
+    "hinted": { "type": "yesno", "value": false }
+  },
+  "sounds": {},
+  "pictures": {
+    "plum-1.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "plum-2.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "plum-3.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "plum-4.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "plum-5.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "plum-6.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "plum-7.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "plum-8.png": {
+      "credit": "NAMI's plum-tree painter (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "sprig.png": {
+      "credit": "NAMI's fallen-sprig drawing (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "hut-single.png": {
+      "credit": "NAMI's tea-house painting (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "hut-double.png": {
+      "credit": "NAMI's tea-house painting (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "table.png": {
+      "credit": "NAMI's tea-house painting (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "vase.png": {
+      "credit": "NAMI's tea-house painting (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "stem-shin.png": {
+      "credit": "NAMI's tea-house painting (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "stem-soe.png": {
+      "credit": "NAMI's tea-house painting (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    },
+    "stem-hikae.png": {
+      "credit": "NAMI's tea-house painting (Claude, for NAMI's Plum Blossom), baked by editor/bake-nami-trees.html"
+    }
+  }
+}

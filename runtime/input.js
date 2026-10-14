@@ -30,7 +30,7 @@ export function createInput(canvas) {
       let x = 0, y = 0;
       for (const k of held) { x += KEYS[k][0]; y += KEYS[k][1]; }
       const f = steering !== null ? fingers.get(steering) : null;
-      return { move: [x, y], pointer: f ? { x: f.x, y: f.y } : null };
+      return { move: [x, y], pointer: f ? { x: f.x, y: f.y, id: steering } : null };
     },
   };
 }

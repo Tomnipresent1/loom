@@ -20,6 +20,14 @@ defineNode({
 });
 
 defineNode({
+  type: 'yesno-to-number', title: 'yes/no → number', kind: 'data', converts: ['yesno', 'number'],
+  help: 'Turns a yes/no into a number: yes = 1, no = 0 (handy for switching a glow or a sound on and off).',
+  inputs: { value: { type: 'yesno', value: false, help: 'The yes/no.' } },
+  outputs: { value: { type: 'number', help: '1 for yes, 0 for no.' } },
+  read: { value: (n) => (n.in('value') ? 1 : 0) },
+});
+
+defineNode({
   type: 'to-text', title: '→ text', kind: 'data', converts: ['*', 'text'],
   help: 'Turns anything into text, so it can be shown with Say.',
   inputs: { value: { type: 'any', value: null, help: 'Anything.' } },

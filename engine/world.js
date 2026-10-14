@@ -1,17 +1,22 @@
 // The World runs a loaded scene: one Instance per placed thing, each with its own copy of its thing's nodes. It knows
-// nothing about screens or fingers: the runtime hands it input ({ move: [x, y], target: [x, y] | null }) and asks it
-// for draw commands, so it runs the same in the browser, on the phone, and in the tests.
+// nothing about screens or fingers: the runtime hands it input ({ move: [x, y], target: [x, y] | null, finger }) and asks
+// it for draw commands, so it runs the same in the browser, on the phone, and in the tests. finger = the steering finger
+// as { id, x } (x across the screen in "picture units": the screen's height = 600, as in NAMI), or null. pressed = the
+// labels of on-screen buttons pressed since the last step (see buttons()), and Card choices ("<card key>#1" / "#2").
+import { scenePlacements } from './scatter.js';
 const MAX_DEPTH = 200;
 
 export class World {
-  constructor(loaded) {
+  // keep.pieceVars: the piece variables to carry on with (beginning the scene again keeps them: "kept from scene to scene")
+  constructor(loaded, keep = {}) {
     const { files, blueprints } = loaded;
     this.files = files;
     this.blueprints = blueprints;
     this.bounds = files.scene.size;
     this.time = 0;
-    this.input = { move: [0, 0], target: null };
-    this.pieceVars = startValues(files.piece.vars);
+    this.input = { move: [0, 0], target: null, finger: null };
+    this.request = null;                             // 'restart' / 'leave', asked for by a Start again box
+    this.pieceVars = { ...startValues(files.piece.vars), ...(keep.pieceVars ? structuredClone(keep.pieceVars) : {}) };
     this.sceneVars = startValues(files.scene.vars);
     this.hud = {};                                   // slot -> { text, age, life }
     this.depth = 0;
@@ -19,7 +24,7 @@ export class World {
     this.soundQueue = [];
     this.instances = [];
     this.byId = new Map();
-    for (const p of files.scene.place || []) {
+    for (const p of scenePlacements(files.scene, files.things)) {        // (placed things, then scattered ones)
       const inst = new Instance(this, blueprints[p.thing], p);
       this.instances.push(inst);
       this.byId.set(p.id, inst);
@@ -43,6 +48,46 @@ export class World {
   draws() {
     const out = [];
     for (const inst of this.instances) inst.each((n) => n.type.draw && n.type.draw(n, out));
+    return out;
+  }
+  // The on-screen buttons showing right now: [{ label, picture, key }], one per label (Button boxes with the same label
+  // share one). The runtime draws them and hands back the labels pressed, as input.pressed on the next step.
+  buttons() {
+    const out = new Map();
+    for (const inst of this.instances) if (!inst.removed) inst.each((n) => {
+      const b = n.type.button && n.type.button(n);
+      if (b && !out.has(b.label)) out.set(b.label, b);
+    });
+    return [...out.values()];
+  }
+  // What walkers bump against: [{ x, y, r, hw, who }] from every box that says it is solid (a node type's solid(n)
+  // gives { r, hw }: its radius, and half its extra width left to right; or just a radius). `except` = the walker's own
+  // thing, which never bumps into itself.
+  solids(except) {
+    const out = [];
+    for (const inst of this.instances) if (inst !== except && !inst.removed) inst.each((n) => {
+      const s = n.type.solid && n.type.solid(n);
+      const r = typeof s === 'number' ? s : s ? s.r : 0, hw = (s && s.hw) || 0;
+      if (r > 0) out.push({ x: inst.pos[0], y: inst.pos[1], r, hw, who: inst });
+    });
+    return out;
+  }
+  // Screens: the cards showing (Card boxes), how much colour the picture has (a Wash box; 1 if none), the bars (Bar).
+  cards() { return this.collect('card'); }
+  bars() { return this.collect('bar'); }
+  wash() { return this.collect('wash')[0] || null; }
+  collect(hook) {
+    const out = [];
+    for (const inst of this.instances) if (!inst.removed) inst.each((n) => { const v = n.type[hook] && n.type[hook](n); if (v) out.push(v); });
+    return out;
+  }
+  // Spaces people keep out of (Keep clear boxes): [{ x, y, r }].
+  clearZones() {
+    const out = [];
+    for (const inst of this.instances) if (!inst.removed) inst.each((n) => {
+      const r = n.type.keepClear && n.type.keepClear(n);
+      if (r > 0) out.push({ x: inst.pos[0], y: inst.pos[1], r });
+    });
     return out;
   }
 
@@ -88,7 +133,7 @@ export class World {
       const fresh = loaded.blueprints[name];
       for (const [id, spec] of Object.entries(bp.nodes)) spec.set = fresh.nodes[id].set;
     }
-    const placed = new Map((loaded.files.scene.place || []).map((p) => [p.id, p]));
+    const placed = new Map(scenePlacements(loaded.files.scene, loaded.files.things).map((p) => [p.id, p]));
     for (const inst of this.instances) {
       const p = placed.get(inst.id);
       for (const [k, decl] of Object.entries(inst.bp.vars)) if (decl.perCopy) inst.vars[k] = p && p.set && k in p.set ? p.set[k] : decl.value;

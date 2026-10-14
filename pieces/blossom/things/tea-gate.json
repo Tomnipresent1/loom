@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "tea-gate",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the gate: walking this far in, she makes her way over to the tea house (once)",
+      "at": [20, 30],
+      "size": [1020, 354],
+      "colour": "#c06f9a"
+    }
+  ],
+  "nodes": {
+    "near": { "type": "trigger-zone", "set": { "radius": 650, "only": "player" }, "at": [40, 80] },
+    "ending": { "type": "get-var", "set": { "var": "ending" }, "at": [40, 260] },
+    "once": { "type": "branch", "at": [290, 80] },
+    "mark": { "type": "set-var", "set": { "var": "ending", "value": true }, "at": [540, 80] },
+    "tell": { "type": "send", "set": { "message": "tea", "mode": "everyone" }, "at": [790, 80] }
+  },
+  "wires": [
+    ["near.entered", "once.go"],
+    ["ending.value", "once.condition"],
+    ["once.no", "mark.go"],
+    ["mark.then", "tell.go"]
+  ]
+}

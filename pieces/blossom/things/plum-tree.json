@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "plum-tree",
+  "vars": {
+    "look": { "type": "picture", "value": "plum-1.png", "perCopy": true },
+    "size": { "type": "number", "value": 992, "perCopy": true },
+    "flip": { "type": "yesno", "value": false, "perCopy": true }
+  },
+  "frames": [
+    {
+      "title": "one of NAMI's painted plum trees: its own picture, height and mirroring",
+      "at": [20, 30],
+      "size": [560, 502],
+      "colour": "#6b4f99"
+    },
+    {
+      "title": "its trunk is solid: she bumps into it and slides round",
+      "at": [20, 562],
+      "size": [560, 146],
+      "colour": "#a0764a"
+    }
+  ],
+  "nodes": {
+    "look": { "type": "get-var", "at": [40, 70], "set": { "var": "look" } },
+    "size": { "type": "get-var", "at": [40, 180], "set": { "var": "size" } },
+    "flip": { "type": "get-var", "at": [40, 290], "set": { "var": "flip" } },
+    "tree": { "type": "picture", "at": [330, 110], "set": { "shadow": 0.45 } },
+    "trunk": { "type": "solid", "at": [330, 602], "set": { "radius": 60 } },
+    "breeze": { "type": "breeze", "at": [40, 404] }
+  },
+  "wires": [
+    ["look.value", "tree.picture"],
+    ["size.value", "tree.height"],
+    ["flip.value", "tree.flip"],
+    ["breeze.strength", "tree.sway"]
+  ]
+}

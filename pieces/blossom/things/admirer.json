@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "admirer",
+  "vars": {
+    "outfit": { "type": "whole", "value": 1, "perCopy": true },
+    "front": { "type": "yesno", "value": true, "perCopy": true },
+    "bowed": { "type": "yesno", "value": false }
+  },
+  "frames": [
+    {
+      "title": "a person in kimono: lingers, admiring the blossom; now and then wanders a few steps",
+      "at": [20, 30],
+      "size": [770, 504],
+      "colour": "#6b4f99"
+    },
+    {
+      "title": "bowing as she passes: once each, and not if anyone bowed in the last 9 seconds",
+      "at": [20, 554],
+      "size": [1520, 534],
+      "colour": "#c06f9a"
+    }
+  ],
+  "nodes": {
+    "her": { "type": "find", "set": { "kind": "player" }, "at": [40, 80] },
+    "outfit": { "type": "get-var", "set": { "var": "outfit" }, "at": [40, 194] },
+    "front": { "type": "get-var", "set": { "var": "front" }, "at": [40, 308] },
+    "move": { "type": "wander", "set": { "path": "main", "keep": 220, "shun": "sprig", "gap": 180 }, "at": [290, 80] },
+    "body": { "type": "figure", "at": [540, 80] },
+    "solid": { "type": "solid", "set": { "radius": 40 }, "at": [540, 428] },
+    "close": { "type": "trigger-zone", "set": { "radius": 180, "only": "player" }, "at": [40, 604] },
+    "bowed": { "type": "get-var", "set": { "var": "bowed" }, "at": [40, 784] },
+    "fresh": { "type": "branch", "at": [290, 604] },
+    "now": { "type": "time", "at": [290, 710] },
+    "last": { "type": "get-var", "set": { "var": "lastBow" }, "at": [290, 794] },
+    "since": { "type": "math", "set": { "op": "-" }, "at": [540, 604] },
+    "long": { "type": "compare", "set": { "op": ">", "b": 9 }, "at": [540, 740] },
+    "quiet": { "type": "branch", "at": [790, 604] },
+    "steps": { "type": "sequence", "at": [790, 710] },
+    "mark": { "type": "set-var", "set": { "var": "bowed", "value": true }, "at": [1040, 604] },
+    "stamp": { "type": "set-var", "set": { "var": "lastBow" }, "at": [1040, 740] },
+    "tell": { "type": "send", "set": { "message": "bow", "mode": "kind", "kind": "player" }, "at": [1040, 876] },
+    "bow": { "type": "ramp", "set": { "seconds": 0.7, "curve": "ease-in-out" }, "at": [1290, 604] }
+  },
+  "wires": [
+    ["her.thing", "move.from"],
+    ["outfit.value", "body.outfit"],
+    ["front.value", "body.front"],
+    ["close.entered", "fresh.go"],
+    ["bowed.value", "fresh.condition"],
+    ["fresh.no", "quiet.go"],
+    ["now.seconds", "since.a"],
+    ["last.value", "since.b"],
+    ["since.result", "long.a"],
+    ["long.result", "quiet.condition"],
+    ["quiet.yes", "steps.go"],
+    ["steps.first", "mark.go"],
+    ["steps.second", "stamp.go"],
+    ["now.seconds", "stamp.value"],
+    ["steps.third", "tell.go"],
+    ["steps.fourth", "bow.play"],
+    ["bow.reachedTop", "bow.reverse"],
+    ["bow.value", "body.bow"]
+  ]
+}

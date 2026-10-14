@@ -2,6 +2,9 @@
 // the World can run. Problems are collected (not thrown one at a time) so the screen can list them all at once, in words.
 import { NODE_TYPES, DATA_TYPES } from './registry.js';
 import { migrate, LoadProblem } from './format.js';
+import { checkCamera } from './camera.js';
+import { checkPaths } from './path.js';
+import { checkScatters } from './scatter.js';
 
 // readJson(path inside the piece folder) -> parsed JSON (async). Returns { files, blueprints, problems }.
 export async function loadPiece(readJson) {
@@ -23,7 +26,8 @@ export async function loadPiece(readJson) {
   // every kind of thing the scene places, plus any listed in piece.json "things" (made, but not placed yet)
   const things = {};
   if (piece.things !== undefined && !(Array.isArray(piece.things) && piece.things.every((t) => typeof t === 'string'))) problems.push('piece.json: "things" should be a list of thing names');
-  for (const name of new Set([...(scene.place || []).map((p) => p.thing), ...(Array.isArray(piece.things) ? piece.things : [])])) {
+  const scattered = scene.scatters && typeof scene.scatters === 'object' ? Object.values(scene.scatters).map((s) => s && s.thing) : [];
+  for (const name of new Set([...(scene.place || []).map((p) => p.thing), ...scattered, ...(Array.isArray(piece.things) ? piece.things : [])])) {
     if (typeof name !== 'string') continue;
     const t = await read(`things/${name}.json`, 'thing');
     if (t) things[name] = t;
@@ -77,17 +81,25 @@ export function compile({ piece, scene, things }, problems = []) {
   }
   const follow = scene.camera && scene.camera.follow;
   if (follow && !ids.has(follow)) problems.push(`${sceneFile}: the camera follows "${follow}", but nothing placed has that id`);
+  problems.push(...checkCamera(scene.camera, sceneFile));
+  problems.push(...checkPaths(scene.paths, sceneFile));
+  const paths = scene.paths && typeof scene.paths === 'object' ? scene.paths : {};
+  problems.push(...checkScatters(scene.scatters, paths, things, sceneFile, [...new Set((scene.place || []).map((p) => p.thing))]));
+  for (const name of Object.keys(scene.scatters && typeof scene.scatters === 'object' ? scene.scatters : {})) {
+    const clash = [...ids].find((id) => new RegExp(`^${name.replace(/[^\w]/g, '\\$&')}-\\d+$`).test(id));
+    if (clash) problems.push(`${sceneFile}: the placed thing "${clash}" has an id the scatter "${name}" uses for its copies (${name}-1, ${name}-2...): rename one`);
+  }
 
   const blueprints = {};
-  for (const [name, thing] of Object.entries(things)) blueprints[name] = compileThing(name, thing, { messages, pieceVars, sceneVars, things }, problems);
+  for (const [name, thing] of Object.entries(things)) blueprints[name] = compileThing(name, thing, { messages, pieceVars, sceneVars, things, paths }, problems);
   return blueprints;
 }
 
-function compileThing(name, thing, { messages, pieceVars, sceneVars, things }, problems) {
+function compileThing(name, thing, { messages, pieceVars, sceneVars, things, paths }, problems) {
   const file = `things/${name}.json`;
   const vars = checkVars(thing.vars, file, problems, {});
   for (const v of Object.keys(vars)) if (v in sceneVars || v in pieceVars) problems.push(`${file}: variable "${v}" has the same name as a scene/piece variable`);
-  const ctx = { messages, things, findVar: (v) => vars[v] || sceneVars[v] || pieceVars[v] || null };
+  const ctx = { messages, things, paths, findVar: (v) => vars[v] || sceneVars[v] || pieceVars[v] || null };
   // Frames (Q7e): titled boxes drawn behind nodes in the editor; the engine ignores them when playing.
   for (const [i, f] of (thing.frames || []).entries()) {
     const okRect = f && Array.isArray(f.at) && f.at.length === 2 && Array.isArray(f.size) && f.size.length === 2 && [...f.at, ...f.size].every(Number.isFinite);
@@ -130,7 +142,8 @@ function compileThing(name, thing, { messages, pieceVars, sceneVars, things }, p
     } else {
       if (p.setting) { problems.push(`${where}: "${inp}" is a setting on ${to.type.title}, it can't take a wire`); continue; }
       const ot = from.outTypes[out], it = p.type;
-      if (it !== 'any' && ot !== it) { problems.push(`${where}: carries ${label_(ot)} into ${label_(it)}, needs a converter box`); continue; }
+      // ("anything" fits everywhere, both ways, like Unreal's wildcard pins: e.g. a message's data into a number)
+      if (it !== 'any' && ot !== 'any' && ot !== it) { problems.push(`${where}: carries ${label_(ot)} into ${label_(it)}, needs a converter box`); continue; }
       if (to.dataIn[inp]) { problems.push(`${where}: "${toId}.${inp}" already has a wire in (one in each)`); continue; }
       to.dataIn[inp] = { node: fromId, pin: out };
     }

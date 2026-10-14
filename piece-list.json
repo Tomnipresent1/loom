@@ -1,6 +1,10 @@
 {
   "pieces": [
     {
+      "id": "blossom",
+      "name": "Plum Blossom"
+    },
+    {
       "id": "glow",
       "name": "Glow garden"
     }

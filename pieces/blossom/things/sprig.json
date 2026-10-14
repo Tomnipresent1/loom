@@ -1,0 +1,68 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "sprig",
+  "vars": { "flip": { "type": "yesno", "value": false, "perCopy": true } },
+  "frames": [
+    {
+      "title": "lies on the path; glows while she is within reach",
+      "at": [20, 30],
+      "size": [1020, 412],
+      "colour": "#9a7ad0"
+    },
+    {
+      "title": "the GATHER button: tap it and she picks this sprig up",
+      "at": [20, 462],
+      "size": [770, 262],
+      "colour": "#c9a227"
+    },
+    {
+      "title": "the first time ever she comes within reach: a hint",
+      "at": [20, 744],
+      "size": [1020, 218],
+      "colour": "#9a7ad0"
+    }
+  ],
+  "nodes": {
+    "flip": { "type": "get-var", "set": { "var": "flip" }, "at": [40, 80] },
+    "zone": { "type": "trigger-zone", "set": { "radius": 140, "only": "player" }, "at": [40, 194] },
+    "near": { "type": "yesno-to-number", "at": [290, 80] },
+    "pulse": { "type": "wave", "set": { "middle": 0.7, "size": 0.3, "speed": 0.65 }, "at": [290, 164] },
+    "glowing": { "type": "math", "set": { "op": "×" }, "at": [540, 80] },
+    "pic": {
+      "type": "picture",
+      "set": { "picture": "sprig.png", "height": 60, "flat": true, "shadow": 0, "sway": 0 },
+      "at": [540, 216]
+    },
+    "glow": { "type": "light", "set": { "colour": "#fff4dc", "radius": 110 }, "at": [790, 80] },
+    "button": {
+      "type": "button",
+      "set": { "label": "GATHER", "picture": "sprig.png", "key": "Enter" },
+      "at": [40, 512]
+    },
+    "tell": { "type": "send", "set": { "message": "gather", "mode": "kind", "kind": "player" }, "at": [290, 512] },
+    "gone": { "type": "remove-me", "at": [540, 512] },
+    "hinted": { "type": "get-var", "set": { "var": "hinted" }, "at": [40, 794] },
+    "once": { "type": "branch", "at": [290, 794] },
+    "mark": { "type": "set-var", "set": { "var": "hinted", "value": true }, "at": [540, 794] },
+    "hint": {
+      "type": "say",
+      "set": { "text": "FALLEN BLOSSOM: TAP THE GLOWING BUTTON TO GATHER IT", "slot": "middle", "seconds": 5 },
+      "at": [790, 794]
+    }
+  },
+  "wires": [
+    ["flip.value", "pic.flip"],
+    ["zone.inside", "near.value"],
+    ["near.value", "glowing.a"],
+    ["pulse.value", "glowing.b"],
+    ["glowing.result", "glow.brightness"],
+    ["zone.inside", "button.show"],
+    ["button.pressed", "tell.go"],
+    ["tell.then", "gone.go"],
+    ["zone.entered", "once.go"],
+    ["hinted.value", "once.condition"],
+    ["once.no", "mark.go"],
+    ["mark.then", "hint.go"]
+  ]
+}

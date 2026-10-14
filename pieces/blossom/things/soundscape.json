@@ -1,0 +1,46 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "soundscape",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the breeze, the wind it makes, and the air under everything (NAMI's garden)",
+      "at": [20, 30],
+      "size": [520, 382],
+      "colour": "#3cc7b5"
+    },
+    {
+      "title": "wooden chimes under the eaves: every 7 to 17 seconds, sooner in a gust",
+      "at": [20, 432],
+      "size": [770, 254],
+      "colour": "#c9a227"
+    },
+    {
+      "title": "birds: the uguisu (bush warbler) every 25 to 50 seconds; small birds flitting past every 15 to 35",
+      "at": [20, 706],
+      "size": [520, 464],
+      "colour": "#9a7ad0"
+    }
+  ],
+  "nodes": {
+    "breeze": { "type": "breeze", "at": [40, 80] },
+    "wind": { "type": "wind", "at": [290, 80] },
+    "air": { "type": "air", "at": [290, 252] },
+    "gust": { "type": "math", "set": { "op": "+", "b": 0.6 }, "at": [40, 482] },
+    "often": { "type": "now-and-then", "set": { "least": 7, "most": 17, "first": 4 }, "at": [290, 482] },
+    "chimes": { "type": "wood-chimes", "set": { "space": 0.3 }, "at": [540, 482] },
+    "uguisu": { "type": "now-and-then", "set": { "least": 25, "most": 50, "first": 12 }, "at": [40, 756] },
+    "flits": { "type": "now-and-then", "set": { "least": 15, "most": 35, "first": 6 }, "at": [40, 906] },
+    "warbler": { "type": "bird-call", "set": { "bird": "uguisu", "space": 0.4 }, "at": [290, 756] },
+    "chii": { "type": "bird-call", "set": { "bird": "small birds", "space": 0.3 }, "at": [290, 958] }
+  },
+  "wires": [
+    ["breeze.strength", "wind.strength"],
+    ["breeze.strength", "gust.a"],
+    ["gust.result", "often.pace"],
+    ["often.now", "chimes.go"],
+    ["uguisu.now", "warbler.go"],
+    ["flits.now", "chii.go"]
+  ]
+}

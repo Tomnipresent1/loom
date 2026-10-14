@@ -7,7 +7,9 @@
 //   configure(scene)   the scene's room + echo settings (scene.sound)
 //   preload(files)     fetch sound files ahead of time
 //   play(cmds)         one-shots: { kind: 'chime', tone, freq, ... } | { kind: 'file', file, rate, ... }, each with volume, space, echo
+//                      | NAMI's garden one-shots: { kind: 'woodchimes', count } | { kind: 'bird', bird } | { kind: 'rustle', seconds }
 //   hums(list)         every frame: held sounds with keys: tones { freq, tone } or loops { kind: 'file', file, rate }
+//                      | NAMI's beds: { kind: 'wind', level } | { kind: 'air' }
 //   sleep(bool), muted, missing (sound files that couldn't be found)
 import { SOUND_DEFAULTS } from '../engine/sends.js';
 
@@ -127,10 +129,63 @@ export function createAudio({ soundUrl = (f) => f } = {}) {
     o.connect(f); o2.connect(g2); g2.connect(f); f.connect(g); route(g, c.space ?? 0.3, c.echo ?? 0);
     o.start(t); o2.start(t); o.stop(t + len + 0.05); o2.stop(t + len + 0.05);
   }
+  // ---- NAMI's garden sounds (Plum Blossom), at NAMI's loudness when volume = 1 ----
+  const NAMI = 0.6 / 0.7;                                     // (NAMI's master was 0.6, ours is 0.7)
+  let noiseBuf = null;
+  function softNoise() {                                     // NAMI's breathing noise: random, smoothed a little (2 s, looped)
+    if (noiseBuf) return noiseBuf;
+    noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    let last = 0; for (let i = 0; i < d.length; i++) { last = last * 0.96 + (Math.random() * 2 - 1) * 0.2; d[i] = last; }
+    return noiseBuf;
+  }
+  function burst(out, dur, vol, f0, f1, delay = 0) {          // a short burst of filtered noise (a click, a rustle)
+    const t = ac.currentTime + delay, n = Math.floor(ac.sampleRate * dur), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const s = ac.createBufferSource(); s.buffer = buf;
+    const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + dur * 0.15); g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t);
+  }
+  function woodChime(out, freq, vol, delay) {                 // a hollow wooden chime: a woody tone, a quick overtone, a soft click
+    const t = ac.currentTime + delay;
+    for (const [ratio, v, len] of [[1, 1, 0.9], [2.9, 0.3, 0.25]]) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = freq * ratio;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * v), t + 0.004); g.gain.exponentialRampToValueAtTime(0.0003, t + len);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + len + 0.05);
+    }
+    burst(out, 0.03, vol * 0.3, 2500, 1200, delay);
+  }
+  function whistle(out, f0, f1, start, len, vol) {            // a bird's whistle: a sine gliding, with a fast flutter
+    const t = ac.currentTime + start, o = ac.createOscillator(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len);
+    lfo.frequency.value = 22; lg.gain.value = f0 * 0.008; lfo.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + Math.min(0.15, len * 0.3)); g.gain.setValueAtTime(Math.max(0.0002, vol), t + len * 0.8); g.gain.exponentialRampToValueAtTime(0.0003, t + len);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + len + 0.05); lfo.start(t); lfo.stop(t + len + 0.05);
+  }
+  const CHIMES = [392, 440, 523.25, 587.33, 659.25, 784];
+  function garden(c) {
+    const out = ac.createGain(), v = c.volume * NAMI;
+    route(out, c.space ?? 0.3, c.echo ?? 0);
+    if (c.kind === 'woodchimes') {
+      let d = 0;
+      const n = c.count > 0 ? c.count : 2 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) { woodChime(out, CHIMES[Math.floor(Math.random() * CHIMES.length)], 0.045 * v, d); d += 0.18 + Math.random() * 0.35; }
+    } else if (c.kind === 'bird' && c.bird === 'small birds') {
+      const n = 2 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) whistle(out, 4200 + Math.random() * 600, 3600 + Math.random() * 400, 0.3 + i * 0.13, 0.07, 0.012 * v);
+    } else if (c.kind === 'bird') {                            // the uguisu: a long rising "hoooo", then a quick "ho-ke-kyo"
+      const far = (0.5 + Math.random() * 0.5) * v;
+      whistle(out, 1150, 1300, 0, 0.9, 0.035 * far);
+      whistle(out, 2350, 2050, 1.05, 0.12, 0.03 * far); whistle(out, 1850, 1800, 1.22, 0.1, 0.03 * far); whistle(out, 2750, 2550, 1.36, 0.22, 0.032 * far);
+    } else if (c.kind === 'rustle') burst(out, c.seconds || 0.35, 0.05 * v, 2600, 900);
+  }
   function play(cmds) {
     if (!ac || ac.state !== 'running') return;
     for (const c of cmds) {
-      if (c.kind === 'file') playFile(c);
+      if (c.kind === 'woodchimes' || c.kind === 'bird' || c.kind === 'rustle') garden(c);
+      else if (c.kind === 'file') playFile(c);
       else if (c.kind === 'chime') {
         if (c.tone === 'pluck') pluck(c);
         else if (c.tone === 'wood') partials(c, [[1, 1, 0.9], [2.9, 0.3, 0.25]]);
@@ -170,14 +225,43 @@ export function createAudio({ soundUrl = (f) => f } = {}) {
     });
     return v;
   }
+  // NAMI's wind: soft, low, breathy noise through a band that opens as the breeze rises
+  function makeWind() {
+    const s = ac.createBufferSource(); s.buffer = softNoise(); s.loop = true; s.playbackRate.value = 0.7;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 0.6;
+    const g = ac.createGain(); g.gain.value = 0;
+    s.connect(bp); bp.connect(g); s.start();
+    return { g, oscs: [[s, 'keep']], ...route(g, 0, 0),
+      update(h, t) { g.gain.setTargetAtTime(h.level * 0.16 * h.volume * NAMI, t, 0.8); bp.frequency.setTargetAtTime(300 + h.level * 500, t, 0.8); } };
+  }
+  // NAMI's air (the garden's ambience): a low breathing bed, slowly in and out, and a very quiet drone under it
+  function makeAir() {
+    const g = ac.createGain(); g.gain.value = 0;
+    const s = ac.createBufferSource(); s.buffer = softNoise(); s.loop = true;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 416;
+    const bed = ac.createGain(); bed.gain.value = 0.0225;
+    const lfo = ac.createOscillator(), lfoG = ac.createGain(); lfo.frequency.value = 0.11; lfoG.gain.value = 0.05; lfo.connect(lfoG); lfoG.connect(bed.gain);
+    s.connect(lp); lp.connect(bed); bed.connect(g);
+    const o1 = ac.createOscillator(), o2 = ac.createOscillator(), dg = ac.createGain();
+    o1.frequency.value = 73.42; o2.frequency.value = 110; dg.gain.value = 0.0156;
+    o1.connect(dg); o2.connect(dg); dg.connect(g);
+    s.start(); lfo.start(); o1.start(); o2.start();
+    return { g, oscs: [[s, 'keep'], [lfo, 'keep'], [o1, 'keep'], [o2, 'keep']], ...route(g, 0, 0),
+      update(h, t) { g.gain.setTargetAtTime(h.volume * NAMI, t, 0.3); } };
+  }
   function hums(list) {
     if (!ac) return;
     const t = ac.currentTime, seen = new Set();
     for (const h of list) {
       seen.add(h.key);
-      const what = h.kind === 'file' ? 'file:' + h.file : 'tone:' + h.tone;
+      const what = h.kind === 'file' ? 'file:' + h.file : h.kind === 'wind' || h.kind === 'air' ? h.kind : 'tone:' + h.tone;
       let v = voices.get(h.key);
-      if (!v || v.what !== what) { if (v) stopVoice(v, t); v = { ...(h.kind === 'file' ? makeLoop(h.file) : makeTone(h.tone)), what }; voices.set(h.key, v); }
+      if (!v || v.what !== what) {
+        if (v) stopVoice(v, t);
+        v = { ...(h.kind === 'file' ? makeLoop(h.file) : h.kind === 'wind' ? makeWind() : h.kind === 'air' ? makeAir() : makeTone(h.tone)), what };
+        voices.set(h.key, v);
+      }
+      if (v.update) { v.update(h, t); v.s.gain.setTargetAtTime(h.space ?? 0.3, t, 0.08); v.e.gain.setTargetAtTime(h.echo ?? 0, t, 0.08); continue; }
       for (const [o, ratio, bp] of v.oscs) {
         if (ratio === 'rate') o.playbackRate.setTargetAtTime(h.rate || 1, t, 0.05);
         else if (bp) bp.frequency.setTargetAtTime(h.freq, t, 0.05);

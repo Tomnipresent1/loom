@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "offer-spot",
+  "vars": {},
+  "frames": [
+    {
+      "title": "where she stands at the table (an invisible marker)",
+      "at": [20, 30],
+      "size": [400, 100],
+      "colour": "#6b4f99"
+    }
+  ],
+  "nodes": {},
+  "wires": []
+}

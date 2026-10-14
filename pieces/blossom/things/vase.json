@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "vase",
+  "vars": {},
+  "frames": [{ "title": "a blue-and-white vase on the table", "at": [20, 30], "size": [250, 288], "colour": "#2f5f8a" }],
+  "nodes": { "pic": { "type": "picture", "at": [40, 80], "set": { "picture": "vase.png", "height": 32, "shadow": 0 } } },
+  "wires": []
+}

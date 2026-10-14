@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "guide",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the camera follows this: her, until the tea house, then it turns slowly to between her and the keeper",
+      "at": [20, 30],
+      "size": [1020, 570],
+      "colour": "#4a8cf0"
+    }
+  ],
+  "nodes": {
+    "her": { "type": "find", "set": { "kind": "player" }, "at": [40, 80] },
+    "keeper": { "type": "find", "set": { "kind": "keeper" }, "at": [40, 194] },
+    "tea": { "type": "on-message", "set": { "message": "tea" }, "at": [40, 308] },
+    "herat": { "type": "position-of", "at": [290, 80] },
+    "keeperat": { "type": "position-of", "at": [290, 208] },
+    "turning": { "type": "ramp", "set": { "seconds": 2.5, "curve": "ease-in-out" }, "at": [290, 336] },
+    "apart": { "type": "math", "set": { "op": "-" }, "at": [540, 80] },
+    "part": { "type": "math", "set": { "op": "×" }, "at": [540, 216] },
+    "half": { "type": "math", "set": { "op": "×", "b": 0.5 }, "at": [540, 352] },
+    "x": { "type": "math", "set": { "op": "+" }, "at": [790, 80] },
+    "spot": { "type": "make-position", "at": [790, 216] },
+    "keep": { "type": "place-at", "at": [790, 344] }
+  },
+  "wires": [
+    ["her.thing", "herat.thing"],
+    ["keeper.thing", "keeperat.thing"],
+    ["tea.received", "turning.play"],
+    ["keeperat.x", "apart.a"],
+    ["herat.x", "apart.b"],
+    ["apart.result", "part.a"],
+    ["turning.value", "part.b"],
+    ["part.result", "half.a"],
+    ["half.result", "x.a"],
+    ["herat.x", "x.b"],
+    ["x.result", "spot.x"],
+    ["herat.y", "spot.y"],
+    ["spot.position", "keep.position"]
+  ]
+}
