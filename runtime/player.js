@@ -4,7 +4,7 @@ import '../nodes/index.js';
 import { loadPiece } from '../engine/load.js';
 import { World } from '../engine/world.js';
 import { canPatchLive } from '../engine/live.js';
-import { cameraSettings, theatreAim } from '../engine/camera.js';
+import { cameraSettings, theatreAim, sideAim } from '../engine/camera.js';
 import { createRenderer2D } from './render2d.js';
 import { createRendererTheatre } from './render-theatre.js';
 import { createPictures } from './pictures.js';
@@ -26,13 +26,14 @@ const canvas = document.getElementById('screen');
 const pictures = createPictures((f) => `${folder}pictures/${encodeURIComponent(f)}`);
 const buttons = createButtons((f) => `${folder}pictures/${encodeURIComponent(f)}`), cards = createCards(), pressed = [];
 const renderers = { map: createRenderer2D(canvas, { pictures }), theatre: createRendererTheatre(canvas, { pictures }) };   // the scene's camera style picks one
+renderers.side = renderers.theatre;                    // (the side view is the theatre's drawing with a level camera)
 const input = createInput(canvas);
 const problemsBox = document.getElementById('problems');
 document.getElementById('fs').onclick = () => {
   if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {});
 };
 
-let loaded = null, world = null, camera = null, note = null;
+let loaded = null, world = null, camera = null, note = null, taps = 0, kick = 0;
 
 // ---- sound: starts on the first touch or key (phones insist), sleeps when the page is hidden, ♪ turns it off/on ----
 const audio = createAudio({ soundUrl: (f) => `${folder}sounds/${encodeURIComponent(f)}` });
@@ -112,6 +113,8 @@ function frame(now) {
   if (camera && camera.style !== set.style) camera = null;          // the style was changed (live): start afresh
   if (set.style === 'theatre') {
     camera = { ...theatreAim(camera, set, want, dt), style: set.style, set, youX: want[0] };
+  } else if (set.style === 'side') {
+    camera = { ...sideAim(camera, set, want, dt, renderer.width, renderer.height, scene.size[0]), style: set.style, set, youX: want[0] };
   } else {
     const scale = Math.min(renderer.width, renderer.height) / set.view;
     if (!camera) camera = { x: want[0], y: want[1], scale, style: set.style };
@@ -125,7 +128,9 @@ function frame(now) {
   spare += dt;
   const finger = raw.pointer ? { id: raw.pointer.id, x: (raw.pointer.x / renderer.height) * 600 } : null;   // (picture units)
   pressed.push(...buttons.take(), ...cards.take());   // button and card presses go to the next step only (once each)
-  while (spare >= STEP) { world.step(STEP, { move: raw.move, target, finger, pressed: pressed.splice(0) }); spare -= STEP; }
+  taps += raw.taps;                                    // taps (a quick touch, or space): to the next step only, too
+  if (raw.kick) kick = raw.kick;                       // a kick (a flick, or K): likewise
+  while (spare >= STEP) { world.step(STEP, { move: raw.move, target, finger, pressed: pressed.splice(0), tap: taps > 0, kick }); taps = 0; kick = 0; spare -= STEP; }
   if (world.request) return answer(world.request);     // a Start again box asked: begin again, or leave
   buttons.update(world.buttons());
   cards.update(world.cards());
@@ -143,7 +148,7 @@ function answer(request) {
   loaded = { files: loaded.files, blueprints: world.blueprints };
   world = new World(loaded, { pieceVars: keep });
   world.begin();
-  camera = null; pressed.length = 0;
+  camera = null; pressed.length = 0; taps = 0; kick = 0;
 }
 
 // A handle for the Machine to look inside from the browser pane (read state, step time by hand). Harmless otherwise.

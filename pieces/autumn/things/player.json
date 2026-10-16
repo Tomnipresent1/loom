@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "player",
+  "vars": {},
+  "frames": [
+    {
+      "title": "her: hold a finger left or right of her to walk, tap to jump; drawn by code (any piece can become a painted picture)",
+      "at": [20, 30],
+      "size": [810, 332],
+      "colour": "#6b4f99"
+    }
+  ],
+  "nodes": {
+    "walk": {
+      "type": "walk-and-jump",
+      "set": { "speed": 180, "ease": 8, "jump": 110, "float": 0.36, "air": 0.6 },
+      "at": [40, 80]
+    },
+    "body": { "type": "character", "set": {}, "at": [320, 80] },
+    "pieces": { "type": "painted-pieces", "set": {}, "at": [600, 80] }
+  },
+  "wires": []
+}

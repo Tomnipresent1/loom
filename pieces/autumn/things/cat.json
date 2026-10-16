@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "cat",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the black cat: shy at first, she learns to trust her; startled, she scampers off (a rustle)",
+      "at": [20, 30],
+      "size": [530, 384],
+      "colour": "#3a3540"
+    }
+  ],
+  "nodes": {
+    "cat": { "type": "cat", "set": { "size": 1.25 }, "at": [40, 80] },
+    "scamper": { "type": "rustle", "set": { "seconds": 0.25, "volume": 0.6, "space": 0.15 }, "at": [320, 80] }
+  },
+  "wires": [["cat.startled", "scamper.go"]]
+}

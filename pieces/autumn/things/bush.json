@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "bush",
+  "vars": { "wide": { "type": "number", "value": 400, "perCopy": true } },
+  "frames": [
+    {
+      "title": "a low bush near the camera (passes in front of her, fast)",
+      "at": [20, 30],
+      "size": [530, 354],
+      "colour": "#3a2d2a"
+    }
+  ],
+  "nodes": {
+    "wide": { "type": "get-var", "set": { "var": "wide" }, "at": [40, 80] },
+    "look": {
+      "type": "tree",
+      "set": { "trunk": 0, "height": 90, "crownAt": 0, "leaves": "#5a3218", "leaves2": "#7a4a24" },
+      "at": [320, 80]
+    }
+  },
+  "wires": [["wide.value", "look.crown"]]
+}

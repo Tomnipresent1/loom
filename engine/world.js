@@ -3,6 +3,8 @@
 // it for draw commands, so it runs the same in the browser, on the phone, and in the tests. finger = the steering finger
 // as { id, x } (x across the screen in "picture units": the screen's height = 600, as in NAMI), or null. pressed = the
 // labels of on-screen buttons pressed since the last step (see buttons()), and Card choices ("<card key>#1" / "#2").
+// tap = yes on the one step after a tap (a quick touch, or space): Walk and jump jumps. kick = -1 / 1 (a flick that
+// way) or 2 (K: the way she faces) on the one step after a kick, else 0.
 import { scenePlacements } from './scatter.js';
 const MAX_DEPTH = 200;
 
@@ -70,6 +72,34 @@ export class World {
       const r = typeof s === 'number' ? s : s ? s.r : 0, hw = (s && s.hw) || 0;
       if (r > 0) out.push({ x: inst.pos[0], y: inst.pos[1], r, hw, who: inst });
     });
+    return out;
+  }
+  // What side-on walkers (Walk and jump) stand on: [{ x1, z1, x2, z2, height(x), who, node }], each a line from its left
+  // end to its right end (x along, z height), from every box that says it is a ledge (a node type's ledge(n) gives the
+  // ends relative to its thing, and optionally sag(u): how far it is bent down at u, 0 = left end .. 1 = right end).
+  // height(x) = its top at x (never below the ground), or null off its ends. Depth (y) doesn't matter: a walker can
+  // stand on every ledge.
+  ledges(except) {
+    const out = [];
+    for (const inst of this.instances) if (inst !== except && !inst.removed) inst.each((n) => {
+      const l = n.type.ledge && n.type.ledge(n);
+      if (!l || !(l.x2 > l.x1)) return;
+      const [x, , z = 0] = inst.pos, x1 = x + l.x1, x2 = x + l.x2, z1 = z + l.z1, z2 = z + l.z2, sag = l.sag;
+      const height = (px) => {
+        if (px < x1 || px > x2) return null;
+        const u = (px - x1) / (x2 - x1);
+        return Math.max(0, z1 + (z2 - z1) * u - (sag ? sag(u) : 0));
+      };
+      out.push({ x1, z1, x2, z2, height, who: inst, node: n });
+    });
+    return out;
+  }
+  // Feet: where every walker's feet are and how they move, for things that react to being walked through (Leaf pile):
+  // [{ x, y, z, vx, vz, standing, landing: { id, impact, time } | null, who }] from every box that has feet (a node
+  // type's feet(n)). landing = the walker's last landing (a new id each time).
+  feet() {
+    const out = [];
+    for (const inst of this.instances) if (!inst.removed) inst.each((n) => { const f = n.type.feet && n.type.feet(n); if (f) out.push({ ...f, who: inst }); });
     return out;
   }
   // Screens: the cards showing (Card boxes), how much colour the picture has (a Wash box; 1 if none), the bars (Bar).

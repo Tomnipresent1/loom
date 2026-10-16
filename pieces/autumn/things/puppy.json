@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "puppy",
+  "vars": {},
+  "frames": [
+    {
+      "title": "the puppy: hiding in the big pile until it tells her; then she plays round the girl",
+      "at": [20, 30],
+      "size": [530, 406],
+      "colour": "#c98a4b"
+    }
+  ],
+  "nodes": {
+    "told": { "type": "on-message", "set": { "message": "puppy" }, "at": [40, 80] },
+    "pup": { "type": "puppy", "set": { "size": 1.4 }, "at": [320, 80] }
+  },
+  "wires": [["told.received", "pup.out"]]
+}

@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "trunk",
+  "vars": { "tall": { "type": "number", "value": 1300, "perCopy": true } },
+  "frames": [
+    {
+      "title": "a tree in her lane: trunk, bark and crown (painted by code; give it a picture to paint it yourself)",
+      "at": [20, 30],
+      "size": [530, 354],
+      "colour": "#8a5a34"
+    }
+  ],
+  "nodes": {
+    "tall": { "type": "get-var", "set": { "var": "tall" }, "at": [40, 80] },
+    "look": {
+      "type": "tree",
+      "set": { "trunk": 90, "crown": 820, "crownAt": 0.5, "bark": "#5b3d2a", "leaves": "#c8632b", "leaves2": "#e8a33a" },
+      "at": [320, 80]
+    }
+  },
+  "wires": [["tall.value", "look.height"]]
+}

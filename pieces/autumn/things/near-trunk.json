@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "near-trunk",
+  "vars": {},
+  "frames": [
+    {
+      "title": "a trunk right by the camera: sweeps across now and then",
+      "at": [20, 30],
+      "size": [250, 354],
+      "colour": "#3a2d2a"
+    }
+  ],
+  "nodes": {
+    "look": { "type": "tree", "set": { "height": 3000, "trunk": 55, "crown": 0, "bark": "#24190f" }, "at": [40, 80] }
+  },
+  "wires": []
+}

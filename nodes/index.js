@@ -24,6 +24,18 @@ import './wander.js';
 import './walk-path.js';
 import './keep-clear.js';
 import './logic.js';
+// side-on (the side camera)
+import './walk-and-jump.js';
+import './ledge.js';
+import './block.js';
+import './tree.js';
+import './hills.js';
+import './leaf-pile.js';
+import './drifting-leaves.js';
+import './character.js';
+import './painted-pieces.js';
+import './cat.js';
+import './puppy.js';
 // screens
 import './card.js';
 import './start-again.js';
@@ -65,3 +77,5 @@ import './wind.js';
 import './air.js';
 import './garden-sounds.js';
 import './now-and-then.js';
+import './crunch.js';
+import './creak.js';

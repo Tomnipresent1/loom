@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "branch",
+  "vars": {
+    "long": { "type": "number", "value": 400, "perCopy": true },
+    "rise": { "type": "number", "value": 0, "perCopy": true },
+    "held": { "type": "number", "value": 0.5, "perCopy": true }
+  },
+  "frames": [
+    {
+      "title": "a springy branch: land on it → knock and creak; its leaves shake loose → rustle; walk through them → crunch",
+      "at": [20, 30],
+      "size": [810, 728],
+      "colour": "#c9a227"
+    }
+  ],
+  "nodes": {
+    "long": { "type": "get-var", "set": { "var": "long" }, "at": [40, 80] },
+    "rise": { "type": "get-var", "set": { "var": "rise" }, "at": [40, 198] },
+    "held": { "type": "get-var", "set": { "var": "held" }, "at": [40, 316] },
+    "ledge": {
+      "type": "ledge",
+      "set": {
+        "colour": "#5b3d2a",
+        "thickness": 22,
+        "give": 12,
+        "rate": 2.2,
+        "wobble": 2,
+        "bounce": 0.5,
+        "look": "branch"
+      },
+      "at": [320, 80]
+    },
+    "leaves": {
+      "type": "leaf-pile",
+      "set": {
+        "branch": true,
+        "count": 70,
+        "depth": 70,
+        "size": 20,
+        "colour": "#c8632b",
+        "colour2": "#e8a33a",
+        "drift": 1.5
+      },
+      "at": [320, 366]
+    },
+    "creak": { "type": "creak", "set": { "space": 0.2 }, "at": [600, 80] },
+    "rustle": { "type": "rustle", "set": { "seconds": 0.5, "volume": 0.7, "space": 0.25 }, "at": [600, 300] },
+    "crunch": { "type": "crunch", "set": { "volume": 0.6, "space": 0.15 }, "at": [600, 498] }
+  },
+  "wires": [
+    ["long.value", "ledge.width"],
+    ["rise.value", "ledge.rise"],
+    ["held.value", "ledge.held"],
+    ["ledge.landed", "creak.go"],
+    ["ledge.jolt", "creak.hard"],
+    ["leaves.fell", "rustle.go"],
+    ["leaves.burst", "rustle.go"],
+    ["leaves.kicked", "crunch.go"],
+    ["leaves.leaves", "crunch.leaves"],
+    ["leaves.strength", "crunch.strength"],
+    ["leaves.where", "crunch.where"]
+  ]
+}

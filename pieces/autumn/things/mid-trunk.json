@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "mid-trunk",
+  "vars": { "tall": { "type": "number", "value": 1700, "perCopy": true } },
+  "frames": [
+    {
+      "title": "a big tree between the distant ones and her lane",
+      "at": [20, 30],
+      "size": [530, 354],
+      "colour": "#4a6fa5"
+    }
+  ],
+  "nodes": {
+    "tall": { "type": "get-var", "set": { "var": "tall" }, "at": [40, 80] },
+    "look": {
+      "type": "tree",
+      "set": {
+        "trunk": 110,
+        "crown": 900,
+        "crownAt": 0.62,
+        "bark": "#6a4a35",
+        "leaves": "#b5562a",
+        "leaves2": "#dc9a3c"
+      },
+      "at": [320, 80]
+    }
+  },
+  "wires": [["tall.value", "look.height"]]
+}

@@ -1,6 +1,10 @@
 // The 2-D renderer. It only turns draw commands into pixels, so another renderer (3-D one day) can take the same
 // commands: { kind: 'disc', at, radius, colour, alpha }, { kind: 'glow', at, radius, colour, strength } and
-// { kind: 'trail', points, colour, width, strength } and { kind: 'picture', at, file, height, lean, flip, alpha, shadow }.
+// { kind: 'trail', points, colour, width, strength } and { kind: 'picture', at, file, height, lean, flip, alpha, shadow },
+// { kind: 'block', at, width, height, colour, alpha, round } and { kind: 'plank', at, from: [x, z], to: [x, z], thickness,
+// colour, alpha } (a ledge's line, its ends relative to its thing), { kind: 'leaves', leaves: [{ x, y, z, rot, tilt,
+// sq, tum, fly, c, k }], size, colours: [c1, c2] } (a Leaf pile: every leaf, each its own place and shade),
+// { kind: 'character', at, scale, facing, pose, colours, pieces, alpha } (a side-on person: runtime/character2d.js).
 // Positions are [x, y, z]; this one ignores z.
 import { FADE } from '../engine/world.js';
 import { drawFigure } from './figure2d.js';
@@ -63,6 +67,33 @@ export function createRenderer2D(canvas, { pictures } = {}) {
         g.save(); g.translate(px, py); if (d.turn) g.rotate(d.turn); if (d.flip) g.scale(-1, 1);
         g.drawImage(pic.sized(w * dpr), -w / 2, -h / 2, w, h);
         g.restore();
+      }
+      // blocks and planks (made for the side view), from above: a block's footprint, a plank's line
+      for (const d of draws) if (d.kind === 'block') {
+        const w = d.width * k, h = Math.max(4, w * 0.25);
+        g.globalAlpha = Math.max(0, Math.min(1, d.alpha)); g.fillStyle = d.colour;
+        g.fillRect(sx(d.at[0]) - w / 2, sy(d.at[1]) - h / 2, w, h);
+      } else if (d.kind === 'plank') {
+        g.globalAlpha = Math.max(0, Math.min(1, d.alpha)); g.strokeStyle = d.colour; g.lineWidth = Math.max(1, d.thickness * k); g.lineCap = 'round';
+        g.beginPath(); g.moveTo(sx(d.at[0] + d.from[0]), sy(d.at[1])); g.lineTo(sx(d.at[0] + d.to[0]), sy(d.at[1])); g.stroke();
+      } else if (d.kind === 'tree') {                      // a tree from above: its crown (or its trunk)
+        g.globalAlpha = Math.max(0, Math.min(1, d.alpha)); g.fillStyle = d.crown > 0 ? d.leaves : d.bark;
+        g.beginPath(); g.arc(sx(d.at[0]), sy(d.at[1]), Math.max(2, (Math.max(d.crown, d.trunk) / 2) * k), 0, 7); g.fill();
+      } else if (d.kind === 'ridge') {                     // hills from above: a band across their width
+        g.globalAlpha = Math.max(0, Math.min(1, d.alpha)); g.fillStyle = d.colour;
+        g.fillRect(sx(d.at[0] - d.width / 2), sy(d.at[1]) - 4, d.width * k, 8);
+      } else if (d.kind === 'cat' || d.kind === 'dog') {   // a cat or a puppy from above: a small oval
+        g.globalAlpha = Math.max(0, Math.min(1, d.alpha)); g.fillStyle = d.colour;
+        g.beginPath(); g.ellipse(sx(d.at[0]), sy(d.at[1]), 30 * d.scale * k, 11 * d.scale * k, 0, 0, 7); g.fill();
+      } else if (d.kind === 'character') {                 // a side-on person from above: her coat, her hat
+        const r = 16 * d.scale * k;
+        g.globalAlpha = Math.max(0, Math.min(1, d.alpha));
+        g.fillStyle = d.colours.coat; g.beginPath(); g.arc(sx(d.at[0]), sy(d.at[1]), r, 0, 7); g.fill();
+        g.fillStyle = d.colours.hat; g.beginPath(); g.arc(sx(d.at[0]), sy(d.at[1]), r * 0.55, 0, 7); g.fill();
+      } else if (d.kind === 'leaves') {                    // leaves from above: little specks
+        const pal = leafPalette(d.colours[0], d.colours[1]), r = Math.max(1, d.size * k * 0.3);
+        g.globalAlpha = 1;
+        for (const l of d.leaves) { g.fillStyle = pal[l.c]; g.fillRect(sx(l.x) - r, sy(l.y) - r, 2 * r, 2 * r); }
       }
       g.globalAlpha = 1;
       for (const d of draws) if (d.kind === 'figure') drawFigure(g, sx(d.at[0]), sy(d.at[1]), k, d, Math.max(0, Math.min(1, d.alpha)));
@@ -140,6 +171,20 @@ export function drawWords(g, W, H, hud, note, ink = '#efe8d8') {
     g.font = '13px monospace'; g.fillText(note.text, W - 12, H - 16);
   }
   g.globalAlpha = 1;
+}
+
+// A Leaf pile's shades: six steps from its colour to its colour 2, and two darker ones (as many as LEAF_COLOURS).
+const palettes = new Map();
+export function leafPalette(c1, c2) {
+  const key = c1 + c2;
+  let p = palettes.get(key);
+  if (!p) {
+    const [a, b] = [rgb(c1), rgb(c2)];
+    const mix = (t, dark = 1) => `rgb(${a.map((v, i) => Math.round((v + (b[i] - v) * t) * dark)).join(',')})`;
+    p = [mix(0), mix(0.2), mix(0.4), mix(0.6), mix(0.8), mix(1), mix(0.3, 0.68), mix(0.7, 0.58)];
+    palettes.set(key, p);
+  }
+  return p;
 }
 
 const cache = new Map();

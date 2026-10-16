@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "falling-leaves",
+  "vars": {},
+  "frames": [
+    {
+      "title": "leaves drifting down all around her, blown by the breeze",
+      "at": [20, 30],
+      "size": [530, 288],
+      "colour": "#c8632b"
+    }
+  ],
+  "nodes": {
+    "breeze": { "type": "breeze", "set": {}, "at": [40, 80] },
+    "leaves": { "type": "drifting-leaves", "set": {}, "at": [320, 80] }
+  },
+  "wires": [["breeze.strength", "leaves.wind"]]
+}

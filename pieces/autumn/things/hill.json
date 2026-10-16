@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "hill",
+  "vars": {
+    "wide": { "type": "number", "value": 4000, "perCopy": true },
+    "tall": { "type": "number", "value": 1800, "perCopy": true }
+  },
+  "frames": [
+    {
+      "title": "a line of far hills (far back: slides by slowly; the air turns it towards the sky)",
+      "at": [20, 30],
+      "size": [530, 282],
+      "colour": "#4a6fa5"
+    }
+  ],
+  "nodes": {
+    "wide": { "type": "get-var", "set": { "var": "wide" }, "at": [40, 80] },
+    "tall": { "type": "get-var", "set": { "var": "tall" }, "at": [40, 198] },
+    "look": { "type": "hills", "set": { "colour": "#7d7590", "roughness": 0.35 }, "at": [320, 80] }
+  },
+  "wires": [["wide.value", "look.width"], ["tall.value", "look.height"]]
+}

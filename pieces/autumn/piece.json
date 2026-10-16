@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "kind": "piece",
+  "name": "Autumn",
+  "start": "start",
+  "messages": { "puppy": { "about": "the girl has stirred up the big pile: the puppy hiding in it comes out" } },
+  "vars": {},
+  "sounds": {},
+  "things": ["bush"]
+}

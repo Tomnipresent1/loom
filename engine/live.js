@@ -11,7 +11,7 @@ export function liveShape(files) {
   return JSON.stringify({
     piece: { ...files.piece, sounds: undefined, pictures: undefined },   // sound / picture credits: notes, nothing to restart for
     // room / echo, the camera, the colours and the paths: live (read afresh every frame)
-    scene: { ...files.scene, sound: undefined, camera: undefined, ground: undefined, sky: undefined, words: undefined, paths: undefined, place: (files.scene.place || []).map((p) => ({ ...p, set: undefined })) },
+    scene: { ...files.scene, sound: undefined, camera: undefined, ground: undefined, sky: undefined, light: undefined, words: undefined, paths: undefined, place: (files.scene.place || []).map((p) => ({ ...p, set: undefined })) },
     things: Object.fromEntries(Object.entries(files.things).map(([k, t]) => [k, strip(t)])),
   });
 }

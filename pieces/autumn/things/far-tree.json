@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "far-tree",
+  "vars": {
+    "tall": { "type": "number", "value": 900, "perCopy": true },
+    "tint": { "type": "colour", "value": "#c47a3a", "perCopy": true }
+  },
+  "frames": [
+    {
+      "title": "a distant autumn tree (behind her lane; the air turns it towards the sky)",
+      "at": [20, 30],
+      "size": [530, 354],
+      "colour": "#4a6fa5"
+    }
+  ],
+  "nodes": {
+    "tall": { "type": "get-var", "set": { "var": "tall" }, "at": [40, 80] },
+    "tint": { "type": "get-var", "set": { "var": "tint" }, "at": [40, 198] },
+    "look": {
+      "type": "tree",
+      "set": { "trunk": 40, "crown": 520, "crownAt": 0.35, "bark": "#6a4a35", "leaves2": "#e8b04a" },
+      "at": [320, 80]
+    }
+  },
+  "wires": [["tall.value", "look.height"], ["tint.value", "look.leaves"]]
+}

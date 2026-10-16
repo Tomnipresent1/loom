@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "leaf-carpet",
+  "vars": {},
+  "frames": [
+    {
+      "title": "a carpet of leaves along the ground: every walk rustles",
+      "at": [20, 30],
+      "size": [530, 574],
+      "colour": "#9a5a2a"
+    }
+  ],
+  "nodes": {
+    "leaves": {
+      "type": "leaf-pile",
+      "set": {
+        "count": 1200,
+        "width": 9000,
+        "depth": 300,
+        "height": 0,
+        "size": 16,
+        "colour": "#9a5a2a",
+        "colour2": "#d0943f"
+      },
+      "at": [40, 80]
+    },
+    "kick": { "type": "crunch", "set": { "volume": 0.8, "space": 0.15 }, "at": [320, 80] },
+    "land": { "type": "crunch", "set": { "thump": 0.3, "volume": 0.8, "space": 0.2 }, "at": [320, 344] }
+  },
+  "wires": [
+    ["leaves.kicked", "kick.go"],
+    ["leaves.leaves", "kick.leaves"],
+    ["leaves.strength", "kick.strength"],
+    ["leaves.where", "kick.where"],
+    ["leaves.burst", "land.go"],
+    ["leaves.leaves", "land.leaves"],
+    ["leaves.strength", "land.strength"],
+    ["leaves.where", "land.where"]
+  ]
+}

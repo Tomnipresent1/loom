@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "big-pile",
+  "vars": {
+    "count": { "type": "whole", "value": 300, "perCopy": true },
+    "wide": { "type": "number", "value": 500, "perCopy": true },
+    "tall": { "type": "number", "value": 60, "perCopy": true },
+    "puppyOut": { "type": "yesno", "value": false }
+  },
+  "frames": [
+    {
+      "title": "the last big pile of leaves: walk through it → crunch; land in it → a bigger crunch with a whump",
+      "at": [20, 30],
+      "size": [810, 574],
+      "colour": "#c8632b"
+    },
+    {
+      "title": "the first time she lands in it or kicks it: the puppy hiding in it bursts out",
+      "at": [845, 30],
+      "size": [545, 574],
+      "colour": "#c98a4b"
+    }
+  ],
+  "nodes": {
+    "count": { "type": "get-var", "set": { "var": "count" }, "at": [40, 80] },
+    "wide": { "type": "get-var", "set": { "var": "wide" }, "at": [40, 198] },
+    "tall": { "type": "get-var", "set": { "var": "tall" }, "at": [40, 316] },
+    "leaves": {
+      "type": "leaf-pile",
+      "set": { "depth": 160, "size": 22, "colour": "#c8632b", "colour2": "#e8a33a" },
+      "at": [320, 80]
+    },
+    "kick": { "type": "crunch", "set": { "space": 0.15 }, "at": [600, 80] },
+    "land": { "type": "crunch", "set": { "thump": 0.8, "space": 0.2 }, "at": [600, 344] },
+    "isOut": { "type": "get-var", "set": { "var": "puppyOut" }, "at": [880, 80] },
+    "once": { "type": "branch", "set": {}, "at": [880, 198] },
+    "mark": { "type": "set-var", "set": { "var": "puppyOut", "value": true }, "at": [880, 308] },
+    "tell": { "type": "send", "set": { "message": "puppy", "mode": "kind", "kind": "puppy" }, "at": [1160, 80] },
+    "beat": { "type": "wait", "set": { "seconds": 0.35 }, "at": [1160, 286] }
+  },
+  "wires": [
+    ["count.value", "leaves.count"],
+    ["wide.value", "leaves.width"],
+    ["tall.value", "leaves.height"],
+    ["leaves.kicked", "kick.go"],
+    ["leaves.leaves", "kick.leaves"],
+    ["leaves.strength", "kick.strength"],
+    ["leaves.where", "kick.where"],
+    ["leaves.burst", "land.go"],
+    ["leaves.leaves", "land.leaves"],
+    ["leaves.strength", "land.strength"],
+    ["leaves.where", "land.where"],
+    ["kick.then", "once.go"],
+    ["land.then", "once.go"],
+    ["isOut.value", "once.condition"],
+    ["once.no", "mark.go"],
+    ["mark.then", "tell.go"],
+    ["tell.then", "beat.go"],
+    ["beat.then", "leaves.scatter"]
+  ]
+}

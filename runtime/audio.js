@@ -8,6 +8,7 @@
 //   preload(files)     fetch sound files ahead of time
 //   play(cmds)         one-shots: { kind: 'chime', tone, freq, ... } | { kind: 'file', file, rate, ... }, each with volume, space, echo
 //                      | NAMI's garden one-shots: { kind: 'woodchimes', count } | { kind: 'bird', bird } | { kind: 'rustle', seconds }
+//                      | Autumn's leaves: { kind: 'crunch', leaves, strength, thump, pan } | branches: { kind: 'creak', hard, pan }
 //   hums(list)         every frame: held sounds with keys: tones { freq, tone } or loops { kind: 'file', file, rate }
 //                      | NAMI's beds: { kind: 'wind', level } | { kind: 'air' }
 //   sleep(bool), muted, missing (sound files that couldn't be found)
@@ -181,10 +182,68 @@ export function createAudio({ soundUrl = (f) => f } = {}) {
       whistle(out, 2350, 2050, 1.05, 0.12, 0.03 * far); whistle(out, 1850, 1800, 1.22, 0.1, 0.03 * far); whistle(out, 2750, 2550, 1.36, 0.22, 0.032 * far);
     } else if (c.kind === 'rustle') burst(out, c.seconds || 0.35, 0.05 * v, 2600, 900);
   }
+  // ---- Autumn's leaves: the crunch of dry leaves ----
+  // A shower of tiny crackles written straight into a buffer: each grain a few milliseconds of crisp noise dying away,
+  // more of them near the start; more leaves = more grains and a longer shower; harder = crisper (the top opens up).
+  // Under it, a soft rustle; for a landing, a low whump. Panned left / right by where it happened.
+  function crunch(c) {
+    const t = ac.currentTime, sr = ac.sampleRate, str = Math.min(1.5, c.strength), amount = Math.min(1, c.leaves / 20);
+    const dur = 0.05 + 0.22 * amount + 0.12 * Math.min(1, str);
+    const grains = Math.min(140, Math.round(3 + c.leaves * 3 * (0.6 + 0.4 * str)));
+    const len = Math.ceil(sr * (dur + 0.02)), buf = ac.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < grains; i++) {
+      const at = Math.floor(Math.random() ** 1.6 * dur * sr), glen = Math.floor(sr * (0.0015 + Math.random() * 0.007));
+      const amp = (0.25 + 0.75 * Math.random() ** 2) * (Math.random() < 0.12 ? 1.8 : 1);      // (the odd louder snap)
+      let prev = 0;
+      for (let j = 0; j < glen && at + j < len; j++) {
+        const w = Math.random() * 2 - 1;
+        d[at + j] += (w - prev * 0.85) * amp * Math.exp(-j / (glen * 0.25));                    // (a touch of highpass: crisper)
+        prev = w;
+      }
+    }
+    const out = ac.createGain();
+    let last = out;
+    if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = c.pan || 0; out.connect(p); last = p; }
+    route(last, c.space ?? 0.3, c.echo ?? 0);
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700 + Math.random() * 900;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2800 + 6000 * Math.min(1, str);
+    const g = ac.createGain(); g.gain.value = 0.11 * c.volume * (0.4 + 0.6 * amount) * (0.5 + 0.5 * str);
+    src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(out); src.start(t);
+    burst(out, dur * 1.3, 0.025 * c.volume * (0.3 + amount), 3800, 1600);                       // the rustle under it
+    if (c.thump > 0) burst(out, 0.22, 0.12 * c.thump * c.volume, 520, 110);                      // the whump
+  }
+  // ---- Autumn's branches: a hollow woody knock, and for a harder landing a short creak ----
+  // The knock: a low sine dropping in pitch, dying fast, with a click on top. The creak: a buzzy tone through a narrow
+  // band, sagging in pitch, chopped by a fast flutter (wood fibres catching and slipping).
+  function creak(c) {
+    const t = ac.currentTime, k = Math.min(1.6, c.hard / 700), v = c.volume;
+    const out = ac.createGain();
+    let last = out;
+    if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = c.pan || 0; out.connect(p); last = p; }
+    route(last, c.space ?? 0.3, c.echo ?? 0);
+    const f = 140 + Math.random() * 70, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.78, t + 0.09);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.2 * k * v), t + 0.004); g.gain.exponentialRampToValueAtTime(0.0003, t + 0.2);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.25);
+    burst(out, 0.025, 0.05 * k * v, 2400, 900);
+    if (k < 0.6) return;
+    const len = 0.3 + 0.25 * Math.min(1, k), start = t + 0.03, base = 95 + Math.random() * 70;
+    const saw = ac.createOscillator(), bp = ac.createBiquadFilter(), chop = ac.createGain(), env = ac.createGain(), lfo = ac.createOscillator(), depth = ac.createGain();
+    saw.type = 'sawtooth'; saw.frequency.setValueAtTime(base, start); saw.frequency.exponentialRampToValueAtTime(base * 0.82, start + len);
+    bp.type = 'bandpass'; bp.frequency.value = 700 + Math.random() * 500; bp.Q.value = 5;
+    lfo.type = 'square'; lfo.frequency.value = 28 + Math.random() * 18; depth.gain.value = 0.5; chop.gain.value = 0.5;
+    lfo.connect(depth); depth.connect(chop.gain);
+    env.gain.setValueAtTime(0.0001, start); env.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.06 * (k - 0.4) * v), start + 0.08); env.gain.exponentialRampToValueAtTime(0.0003, start + len);
+    saw.connect(bp); bp.connect(chop); chop.connect(env); env.connect(out);
+    saw.start(start); lfo.start(start); saw.stop(start + len + 0.05); lfo.stop(start + len + 0.05);
+  }
   function play(cmds) {
     if (!ac || ac.state !== 'running') return;
     for (const c of cmds) {
       if (c.kind === 'woodchimes' || c.kind === 'bird' || c.kind === 'rustle') garden(c);
+      else if (c.kind === 'crunch') crunch(c);
+      else if (c.kind === 'creak') creak(c);
       else if (c.kind === 'file') playFile(c);
       else if (c.kind === 'chime') {
         if (c.tone === 'pluck') pluck(c);
