@@ -10,7 +10,8 @@
   html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   canvas { display: block; touch-action: none; width: 100vw; height: 100vh; }
   #snd { right: 52px !important; }
-  #fs, #snd { position: fixed; top: 10px; right: 8px; z-index: 5; width: 36px; height: 36px; border: 1px solid rgba(220,230,255,.25); border-radius: 8px; background: rgba(20,28,52,.5); color: #cfd8f0; font: 15px/1 Georgia, serif; padding: 0; }
+  #hq { right: 96px !important; }
+  #fs, #snd, #hq { position: fixed; top: 10px; right: 8px; z-index: 5; width: 36px; height: 36px; border: 1px solid rgba(220,230,255,.25); border-radius: 8px; background: rgba(20,28,52,.5); color: #cfd8f0; font: 15px/1 Georgia, serif; padding: 0; }
   #problems { display: none; position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 9; max-height: 60vh; overflow: auto; background: #3a0d12; color: #fff; font: 13px/1.45 monospace; padding: 10px 12px; border-radius: 8px; white-space: pre-wrap; }
   #problems.show { display: block; }
   /* the home page (no ?piece=): a list of pieces to tap */
@@ -20,14 +21,19 @@
   #pieces a { display: block; margin: 0 0 12px; padding: 18px 20px; border: 1px solid rgba(220,230,255,.25); border-radius: 12px; background: rgba(20,28,52,.6); color: #f4efe6; text-decoration: none; }
   #pieces a span { display: block; color: #7f8bab; font-size: 13px; margin-top: 2px; }
   body.home #pieces { display: block; }
-  body.home canvas, body.home #fs, body.home #snd { display: none; }
+  body.home canvas, body.home #fs, body.home #snd, body.home #hq { display: none; }
 </style>
-<meta name="loom-published" content="2026-10-16 20:33">
+<meta name="loom-published" content="2026-10-17 20:40">
 </head>
 <body>
 <canvas id="screen"></canvas>
 <button id="fs" aria-label="Fullscreen">⛶</button>
 <button id="snd" aria-label="Sound on or off" title="sound on / off">♪</button>
+<!-- The ◐ button (how smoothly it runs; tapped again: auto / smooth / sharp) is off the screen at Tom's word
+     (2026-10-17: players shouldn't have to think about it; auto finds the right sharpness by itself). Still there
+     under the hood: to show it again, put this line back:
+     <button id="hq" aria-label="How smoothly it runs" title="how smoothly it runs (tap again to change: auto / smooth / sharp)">◐</button> -->
+
 <div id="problems"></div>
 <div id="pieces"><h1>LOOM</h1><p>Tap a piece to play it.</p><div id="piecelist">…</div></div>
 <script type="module">

@@ -11,6 +11,7 @@ export function drawCat(g, sx, sy, s, d, alpha) {
   g.save();
   g.globalAlpha = alpha;
   g.translate(sx, sy);
+  if (d.slope) g.rotate(-d.slope);                         // (on a sloping branch, all of her tilts with it, paws on it)
   g.scale(k * d.facing, -k);
   const line = (pts, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const q of pts.slice(1)) g.lineTo(q.x, q.y); g.stroke(); };
   const leg = (l, col) => { line([l.top, l.knee, l.paw], l.which === 'hind' ? 6.5 : 5.5, col); g.fillStyle = col; g.beginPath(); g.ellipse(l.paw.x + 1.2, l.paw.y + 1.3, 3.2, 1.8, 0, 0, TAU); g.fill(); };

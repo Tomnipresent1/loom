@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "robin",
+  "vars": {},
+  "frames": [
+    {
+      "title": "a robin in the tree: sings now and then, heard from where it sits",
+      "at": [20, 30],
+      "size": [530, 274],
+      "colour": "#c4553a"
+    }
+  ],
+  "nodes": {
+    "often": { "type": "now-and-then", "set": { "least": 6, "most": 16, "first": 3 }, "at": [40, 80] },
+    "call": {
+      "type": "bird-call",
+      "set": { "placed": true, "bird": "robin", "volume": 0.6, "near": 2600, "space": 0.4 },
+      "at": [320, 80]
+    }
+  },
+  "wires": [["often.now", "call.go"]]
+}

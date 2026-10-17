@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "soundscape",
+  "vars": {},
+  "frames": [
+    {
+      "title": "wind in the trees, with the breeze; dry leaves rattle in the gusts",
+      "at": [20, 30],
+      "size": [530, 244],
+      "colour": "#7d8a99"
+    }
+  ],
+  "nodes": {
+    "breeze": { "type": "breeze", "set": {}, "at": [40, 80] },
+    "wind": { "type": "wind", "set": { "leaves": 1, "volume": 0.4 }, "at": [320, 80] }
+  },
+  "wires": [["breeze.strength", "wind.strength"]]
+}

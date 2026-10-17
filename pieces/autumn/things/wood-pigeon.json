@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "wood-pigeon",
+  "vars": {},
+  "frames": [
+    {
+      "title": "a wood pigeon in the far trees: coo-COOO-coo now and then",
+      "at": [20, 30],
+      "size": [530, 274],
+      "colour": "#8c8fa3"
+    }
+  ],
+  "nodes": {
+    "often": { "type": "now-and-then", "set": { "least": 20, "most": 45, "first": 15 }, "at": [40, 80] },
+    "call": {
+      "type": "bird-call",
+      "set": { "placed": true, "bird": "wood pigeon", "volume": 1, "near": 6500, "space": 0.5 },
+      "at": [320, 80]
+    }
+  },
+  "wires": [["often.now", "call.go"]]
+}

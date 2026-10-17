@@ -7,6 +7,8 @@
 //   the air: rising, the near knee tucks and an arm reaches up; falling, both legs reach down for the ground
 //   landing: the knees give and she squashes a little, harder for a harder landing
 //   kicking: a wind-up, the leg swinging through with the toe up, and back (her arms swing against it)
+//   tossing: she bends down (knees and back), both hands scoop the leaves at her feet, she straightens and throws them
+//            up over her head, and watches them come down
 //   standing: she breathes and blinks
 //   ponytail and scarf end: little chains swinging around her body (they swing when she starts, stops, turns and lands,
 //   float while she is in the air, trail a little as she walks)
@@ -17,6 +19,27 @@ export const BODY = { THIGH: 42, SHIN: 40, FOOT: 15, TORSO: 44, NECK: 5, HEAD: 1
 const WALK = 180;        // the walking speed (scene units a second, at her full height) her walk cycle is made for
 const STRIDE = 150;      // ground covered by one full walk cycle (two steps), at her full height
 const GRAVITY = 1698;    // the hair's gravity: her jump's (Walk and jump's 110 high, 0.36 s), so in the air it floats
+// A toss, in seconds: how long it takes, when her hands scoop the leaves up (gather) and when she lets go (fling).
+// Walk and jump keeps time by these; the pose below is keyed to them.
+export const TOSS = { len: 1.2, gather: 0.46, fling: 0.72 };
+// its pose through time: [t, near thigh, near knee, far thigh, far knee, lean, shoulders, elbows, head tilt]
+// (thigh: forward from hanging; knee: how bent; lean: the back, forward; shoulders: the arms, forward and up from
+// hanging; head tilt: forward = down, back = up)
+const TOSS_KEYS = [
+  [0, 0, 0.12, 0, 0.12, 0, 0.06, 0.25, 0],
+  [0.38, 1.2, 2.1, 1.0, 1.9, 1.1, 0.3, 0.15, 1.25],        // bent down, hands reaching for the leaves, looking at them
+  [0.5, 1.2, 2.1, 1.0, 1.9, 1.05, 0, 0.45, 1.2],          // scooped: hands drawn in, full
+  [0.64, 0.3, 0.5, 0.2, 0.4, 0.15, 1.7, 0.25, 0.1],       // rising, arms swinging up
+  [0.74, 0, 0.1, -0.05, 0.1, -0.12, 2.9, 0.1, -0.35],     // let go, arms high over her head, looking up
+  [0.95, 0, 0.12, -0.05, 0.12, -0.1, 2.5, 0.35, -0.45],   // watching them come down
+  [1.2, 0, 0.12, 0, 0.12, 0, 0.06, 0.25, 0],
+];
+function tossPose(t) {
+  let i = 1;
+  while (i < TOSS_KEYS.length - 1 && t > TOSS_KEYS[i][0]) i++;
+  const a = TOSS_KEYS[i - 1], b = TOSS_KEYS[i], u = Math.max(0, Math.min(1, (t - a[0]) / (b[0] - a[0]))), e = u * u * (3 - 2 * u);
+  return a.map((v, k) => v + (b[k] - v) * e);
+}
 
 export function createRig(seed = 1) {
   const rnd = seeded(seed);
@@ -27,7 +50,7 @@ export function createRig(seed = 1) {
 
 // One step of time. m = how the thing is moving: { x, z (its place: along, height), standing (on her feet?), landing
 // ({ id, impact } of the last landing, or null), facing (1 / -1, or 0 = from the way it moves), kick ({ t } while a
-// kick goes on: seconds into it, or null), scale (height / 165) }.
+// kick goes on: seconds into it, or null), toss (likewise, a toss), scale (height / 165) }.
 // Returns how many footfalls happened (for footstep sounds).
 export function stepRig(rig, m, dt) {
   if (dt <= 0) return 0;
@@ -41,6 +64,7 @@ export function stepRig(rig, m, dt) {
   if (m.facing) rig.facing = m.facing;
   else if (Math.abs(vx) > 5) rig.facing = Math.sign(vx);
   rig.kick = m.kick || null;
+  rig.toss = m.toss || null;
   const speed = Math.abs(vx) / sc;
   rig.walk = Math.min(1.3, speed / WALK);
   let footfalls = 0;
@@ -118,16 +142,30 @@ export function rigPose(rig) {
     A.sh += (-0.2 - 0.7 * Math.max(0, th) - A.sh) * w; B.sh += (0.4 + 0.6 * Math.max(0, th) - B.sh) * w;
     kicking = Math.max(0, th) * w;
   }
+  // a toss (TOSS.len s): keyed poses (TOSS_KEYS), blended in from whatever she was doing and back out again
+  let tossW = 0, T = null;
+  if (rig.toss) {
+    const t = rig.toss.t;
+    tossW = Math.max(0, Math.min(1, t / 0.12, (TOSS.len - t) / 0.3));
+    T = tossPose(t);
+    const [, tn, kn, tf, kf, , sh, el] = T, mix = (o, k, v) => { o[k] += (v - o[k]) * tossW; };
+    mix(legs[0], 'thigh', tn); mix(legs[0], 'knee', kn); mix(legs[0], 'foot', 0);
+    mix(legs[1], 'thigh', tf); mix(legs[1], 'knee', kf); mix(legs[1], 'foot', 0);
+    mix(arms[0], 'sh', sh); mix(arms[0], 'el', el);
+    mix(arms[1], 'sh', sh - 0.12); mix(arms[1], 'el', el + 0.08);      // (the far arm just behind the near one)
+  }
   const reach = (l) => {
     const ankle = THIGH * Math.cos(l.thigh) + SHIN * Math.cos(l.thigh - l.knee), fa = l.foot + Math.min(0, l.thigh - l.knee) * 0.3;
     return ankle + Math.max(0, -FOOT * Math.sin(fa) - 2);
   };
   const hipY = Math.max(reach(legs[0]), reach(legs[1])) + 2;
-  const lean = 0.07 * s + (rising ? -0.05 : 0.04) * a + land * 0.25 - 0.12 * kicking;
-  const breathe = (1 - Math.min(1, s)) * (1 - a) * Math.sin(rig.t * 2.2) * 0.8;
+  let lean = 0.07 * s + (rising ? -0.05 : 0.04) * a + land * 0.25 - 0.12 * kicking;
+  if (T) lean += (T[5] - lean) * tossW;
+  const breathe = (1 - Math.min(1, s)) * (1 - a) * Math.sin(rig.t * 2.2) * 0.8 * (1 - tossW);
   const hip = { x: 0, y: hipY + breathe * 0.3 };
   const shoulder = { x: hip.x + TORSO * Math.sin(lean), y: hip.y + TORSO * Math.cos(lean) + breathe };
-  const tilt = lean * 0.4 - 0.05 * s * Math.cos(rig.phase * 2 * TAU) - land * 0.2;
+  let tilt = lean * 0.4 - 0.05 * s * Math.cos(rig.phase * 2 * TAU) - land * 0.2;
+  if (T) tilt += (T[8] - tilt) * tossW;
   const head = { x: shoulder.x + (NECK + HEAD) * Math.sin(tilt + 0.05), y: shoulder.y + (NECK + HEAD) * Math.cos(tilt + 0.05) };
   const leg = (l) => {
     const knee = { x: hip.x + THIGH * Math.sin(l.thigh), y: hip.y - THIGH * Math.cos(l.thigh) };

@@ -9,7 +9,7 @@
   },
   "frames": [
     {
-      "title": "a springy branch: land on it → knock and creak; its leaves shake loose → rustle; walk through them → crunch",
+      "title": "a springy branch: land on it → knock, creak; leaves shake loose → rustle; walk or toss → crunch",
       "at": [20, 30],
       "size": [810, 728],
       "colour": "#c9a227"
@@ -60,6 +60,8 @@
     ["leaves.kicked", "crunch.go"],
     ["leaves.leaves", "crunch.leaves"],
     ["leaves.strength", "crunch.strength"],
-    ["leaves.where", "crunch.where"]
+    ["leaves.where", "crunch.where"],
+    ["leaves.scooped", "crunch.go"],
+    ["leaves.thrown", "rustle.go"]
   ]
 }

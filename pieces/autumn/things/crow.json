@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "crow",
+  "vars": {},
+  "frames": [
+    {
+      "title": "a crow far off over the hills: a few caws now and then",
+      "at": [20, 30],
+      "size": [530, 274],
+      "colour": "#3a3540"
+    }
+  ],
+  "nodes": {
+    "often": { "type": "now-and-then", "set": { "least": 30, "most": 70, "first": 25 }, "at": [40, 80] },
+    "call": {
+      "type": "bird-call",
+      "set": { "placed": true, "bird": "crow", "volume": 0.45, "space": 0.6, "echo": 0.2 },
+      "at": [320, 80]
+    }
+  },
+  "wires": [["often.now", "call.go"]]
+}

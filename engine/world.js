@@ -4,7 +4,8 @@
 // as { id, x } (x across the screen in "picture units": the screen's height = 600, as in NAMI), or null. pressed = the
 // labels of on-screen buttons pressed since the last step (see buttons()), and Card choices ("<card key>#1" / "#2").
 // tap = yes on the one step after a tap (a quick touch, or space): Walk and jump jumps. kick = -1 / 1 (a flick that
-// way) or 2 (K: the way she faces) on the one step after a kick, else 0.
+// way) or 2 (K: the way she faces) on the one step after a kick, else 0. toss = yes on the one step after a swipe up
+// (or T): Walk and jump bends down, scoops up the leaves at her feet and throws them in the air.
 import { scenePlacements } from './scatter.js';
 const MAX_DEPTH = 200;
 

@@ -1,12 +1,14 @@
 import { defineNode } from '../engine/registry.js';
+import { TOSS } from '../engine/character.js';
 
 // Side-on walking, for the side camera (Autumn): hold a finger to the left or right of her and she walks that way (the
 // further from her, the faster, up to her top speed); a quick tap makes her jump. Gravity brings her down onto the
 // ground (height 0) or onto a Ledge; she jumps up through ledges from below and lands on top, follows their slope, and
 // falls when she walks off an end. On a springy ledge (a branch) she rides its bend, and a jump as it swings up gets
 // a lift from it (its bounce). A quick sideways flick (or K) is a kick that way: she stops, turns, swings her leg, and
-// as her foot comes through "kicked" fires (and leaves there fly: Leaf pile). Keys: left / right, space or up to
-// jump, K or down to kick.
+// as her foot comes through "kicked" fires (and leaves there fly: Leaf pile). A quick swipe up (or T) is a toss: she
+// stops, bends down, scoops up the leaves at her feet (a Leaf pile hands them to her), straightens and throws them
+// up over her head ("tossed"). Keys: left / right, space or up to jump, K or down to kick, T to toss.
 // A jump is set by how high (jump) and how long it takes to reach the top (float): gravity follows from the two.
 const DEAD = 12;        // a finger this close to her (sideways, in scene units) means stand
 const FULL = 200;       // ...and this far or further, full speed
@@ -28,6 +30,7 @@ defineNode({
   outputs: {
     jumped: { flow: true, help: 'Fires as she leaves the ground in a jump.' },
     kicked: { flow: true, help: 'Fires as her foot swings through in a kick (a quick sideways flick, or K).' },
+    tossed: { flow: true, help: 'Fires as she throws up the leaves she scooped (a quick swipe up, or T: she bends down for them first).' },
     landed: { flow: true, help: 'Fires as she lands, on the ground or on a ledge.' },
     impact: { type: 'number', label: 'landing speed', help: 'How fast she was falling when she last landed, in scene units a second (a little hop about 600, a drop from a high branch 1000+).' },
     moving: { type: 'yesno', label: 'walking?', help: 'Yes while she walks along the ground or a ledge.' },
@@ -35,13 +38,16 @@ defineNode({
     pace: { type: 'number', help: 'How fast she is moving sideways right now (always 0 or more).' },
     facing: { type: 'number', help: 'Which way she faces: 1 = right, −1 = left.' },
   },
-  create(n) { Object.assign(n.state, { vx: 0, vz: 0, grounded: false, on: null, coyote: 0, early: 0, facing: 1, impact: 0, landing: null, landings: 0, kick: null, kicks: 0, strike: null }); },
+  create(n) { Object.assign(n.state, { vx: 0, vz: 0, grounded: false, on: null, coyote: 0, early: 0, facing: 1, impact: 0, landing: null, landings: 0, kick: null, kicks: 0, strike: null,
+    toss: null, tosses: 0, gather: null, fling: null }); },
   // her feet, for things she walks through (leaves) or stands on (ledges): where, how fast, what she stands on (the
-  // Ledge box, or null for the ground), her last landing, a kick going on ({ t, dir }) and her last kick's strike
+  // Ledge box, or null for the ground), her last landing, a kick going on ({ t, dir }) and her last kick's strike; a
+  // toss going on ({ t, dir }), the moment her hands last scooped (gather) and last threw (fling)
   feet(n) {
     const s = n.state, p = n.me.pos;
     return { x: p[0], y: p[1], z: p[2] || 0, vx: s.vx, vz: s.vz, standing: s.grounded, on: s.grounded ? s.on : null, landing: s.landing, facing: s.facing,
-      kick: s.kick ? { t: s.kick.t, dir: s.kick.dir } : null, strike: s.strike };
+      kick: s.kick ? { t: s.kick.t, dir: s.kick.dir } : null, strike: s.strike,
+      toss: s.toss ? { t: s.toss.t, dir: s.toss.dir } : null, gather: s.gather, fling: s.fling };
   },
   begin(n) {
     const p = n.me.pos, top = support(n, p[0], p[2] || 0, 0, null);
@@ -56,7 +62,7 @@ defineNode({
       else if (input.move) want = Math.max(-1, Math.min(1, input.move[0]));
     }
     // a kick: she stops and turns the way it goes; part way through, her foot comes through ("kicked")
-    if (input.kick && s.grounded && !still && !s.kick) {
+    if (input.kick && s.grounded && !still && !s.kick && !s.toss) {
       const dir = input.kick === 2 ? s.facing : Math.sign(input.kick);
       s.facing = dir; s.kick = { t: 0, dir, id: ++s.kicks };
     }
@@ -71,6 +77,21 @@ defineNode({
       }
       if (s.kick.t >= KICK || !s.grounded) s.kick = null;
     }
+    // a toss: she stops, bends down and scoops (gather: the leaves at her feet go into her hands), straightens and
+    // throws them up over her head (fling: "tossed"), and watches them come down
+    if (input.toss && s.grounded && !still && !s.kick && !s.toss) s.toss = { t: 0, dir: s.facing, id: ++s.tosses };
+    if (s.toss) {
+      want = 0;
+      const before = s.toss.t;
+      s.toss.t += dt;
+      if (before < TOSS.gather && s.toss.t >= TOSS.gather) s.gather = { id: s.toss.id, time: n.world.time };
+      if (before < TOSS.fling && s.toss.t >= TOSS.fling) {
+        s.fling = { id: s.toss.id, dir: s.toss.dir, time: n.world.time };
+        n.fire('tossed');
+        if (n.me.removed) return;
+      }
+      if (s.toss.t >= TOSS.len || !s.grounded) s.toss = null;
+    }
     if (want) s.facing = Math.sign(want);
     const speed = n.in('speed'), ease = n.in('ease');
     if (s.grounded) s.vx += (want * speed - s.vx) * Math.min(1, dt * ease);
@@ -80,7 +101,7 @@ defineNode({
     // jumping: a tap now, or just before she landed; or just after she walked off an edge
     const h = Math.max(1, n.in('jump')), t = Math.max(0.05, n.in('float')), g = (2 * h) / (t * t);
     s.early = input.tap && !still ? EARLY : Math.max(0, s.early - dt);
-    if (s.kick) s.early = 0;                                        // (no jumping mid-kick)
+    if (s.kick || s.toss) s.early = 0;                              // (no jumping mid-kick or mid-toss)
     s.coyote = s.grounded ? COYOTE : Math.max(0, s.coyote - dt);
     if (still) s.early = 0;
     if (s.early > 0 && s.coyote > 0) {

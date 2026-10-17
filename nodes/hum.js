@@ -1,6 +1,6 @@
 import { defineNode } from '../engine/registry.js';
 import { NOTES, noteFreq } from '../engine/notes.js';
-import { SEND_INPUTS, heard, sends } from '../engine/sends.js';
+import { SEND_INPUTS, heard, sends, previewSends, clamp01 } from '../engine/sends.js';
 
 // A held tone that lasts as long as its thing. Volume and bend are live, so wires can swell it, fade it, slide it.
 defineNode({
@@ -18,4 +18,5 @@ defineNode({
     const v = heard(n, n.in('volume'));
     if (v > 0.001) out.push({ key: `${n.me.id}.${n.id}`, freq: noteFreq(n.in('note'), n.in('bend')), volume: v, tone: n.in('tone'), ...sends(n) });
   },
+  preview: (get) => ({ hum: { freq: noteFreq(get('note'), get('bend')), volume: clamp01(get('volume')), tone: get('tone'), ...previewSends(get) }, seconds: 3 }),
 });

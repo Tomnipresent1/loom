@@ -4,8 +4,11 @@ import { seeded } from '../engine/rng.js';
 // A pile of real leaves (Autumn): each leaf is its own little thing that rests, flies when kicked, flutters down and
 // stays where it lands, so it can be kicked again. Walkers (anything with feet: Walk and jump) kick the leaves they walk
 // through (slow = a shuffle, brisk = flying), kick the ones in front of their foot (a kick: Walk and jump), and burst
-// them when they land in them (harder for a bigger drop).
-// "kicked" and "landed in" fire with how many leaves flew, how hard and where: wire them to a Crunch.
+// them when they land in them (harder for a bigger drop). A toss (Walk and jump: a swipe up): she bends down, the
+// leaves lying just in front of her feet go into her hands (up to two handfuls), ride up in them and fly when she
+// throws them up over her head, to flutter down all around her.
+// "kicked", "landed in", "scooped up" and "thrown" fire with how many leaves flew, how hard and where: wire them to a
+// Crunch.
 // A low wide pile is a carpet of leaves along the ground. The layout (how many, width, depth, height) is redone when
 // those numbers change; colours and size change at once.
 // Lying leaves are stacked in little columns (cells, a few leaves wide): a leaf rests on the ones under it, so when
@@ -25,6 +28,8 @@ const THIN = 1.5;          // how much one leaf adds to a stack where none was h
 const SINK = 90;           // how fast leaves sink when the ones under them go (units a second)
 const SHAKE = 30;          // a branch swinging slower than this (units a second, where the leaf is) holds on to its leaves
 const FELL_GAP = 0.25;     // leaves shaken down are told (fire "shaken down") at most this often, in seconds
+const GRAB = 36;           // the most leaves one scoop picks up (both hands full)
+const GRAB_REACH = 65;     // ...lying up to this far in front of her feet (and a little behind)
 export const LEAF_COLOURS = 8;   // how many shades each pile's leaves come in (the renderers make them from colour, colour 2)
 
 defineNode({
@@ -52,6 +57,8 @@ defineNode({
     still: { type: 'number', label: 'never moved', help: 'How many leaves have never been moved yet (what is left of the pile, or on the branch).' },
     where: { type: 'position', help: 'Where it happened (at the feet).' },
     fell: { flow: true, label: 'shaken down', help: 'On a branch: fires as leaves shake loose or drift down (at most 4 times a second); "how many flew" says how many.' },
+    scooped: { flow: true, label: 'scooped up', help: 'Fires when someone bends down and scoops up leaves from it (a swipe up: Walk and jump\'s toss); "how many flew" says how many.' },
+    thrown: { flow: true, help: 'Fires as the scooped leaves are thrown up into the air.' },
   },
   create(n) { n.state.told = { leaves: 0, strength: 0, where: [...n.me.pos] }; build(n); },
   tick(n, dt) {
@@ -68,8 +75,24 @@ defineNode({
         if (n.me.removed) return;
       }
     }
-    // the feet: landings burst, walking kicks
-    for (const f of n.world.feet()) {
+    // the feet: landings burst, walking kicks; hands scoop and throw
+    const feet = n.world.feet();
+    for (const f of feet) {
+      // a toss: her hands scoop up the leaves at her feet; then she throws them
+      if (f.gather && s.seenGather.get(f.who) !== f.gather.id) {
+        s.seenGather.set(f.who, f.gather.id);
+        if (n.world.time - f.gather.time < 0.1) {
+          const got = gatherAt(n, f);
+          if (got) tell(n, 'scooped', got, 0.5, [f.x + (f.facing || 1) * 25, f.y, f.z]);
+          if (n.me.removed) return;
+        }
+      }
+      if (f.fling && s.seenFling.get(f.who) !== f.fling.id) {
+        s.seenFling.set(f.who, f.fling.id);
+        const h = s.holding.length && n.world.time - f.fling.time < 0.1 ? handsOf(f.who, f) : null, flew = h ? throwHeld(n, f.who, f.fling.dir) : 0;
+        if (flew) tell(n, 'thrown', flew, 0.8, [h.x, f.y, h.z]);
+        if (n.me.removed) return;
+      }
       if (f.landing && s.seen.get(f.who) !== f.landing.id) {
         s.seen.set(f.who, f.landing.id);
         if (n.world.time - f.landing.time < 0.1) {
@@ -97,6 +120,15 @@ defineNode({
         flew++;
       }
       if (flew) { s.acc += flew; s.accStr = Math.max(s.accStr, str); s.accWhere = [f.x, f.y, f.z]; }
+    }
+    // leaves in someone's hands ride along with them till they're thrown (dropped if the toss breaks off)
+    const hands = new Map();
+    for (let i = s.holding.length - 1; i >= 0; i--) {
+      const l = s.holding[i], f = feet.find((g) => g.who === l.hold.who);
+      if (!f || !f.toss) { s.holding.splice(i, 1); l.hold = null; launch(n, l, (s.rnd() * 2 - 1) * 40, (s.rnd() * 2 - 1) * 30, 40); continue; }
+      if (!hands.has(f.who)) hands.set(f.who, handsOf(f.who, f));
+      const h = hands.get(f.who);
+      l.x = h.x + l.hold.ox; l.y = f.y + l.hold.oy; l.z = Math.max(0, h.z + l.hold.oz); l.tum += dt * 3;
     }
     if (s.acc > 0 && n.world.time - s.toldAt >= TELL_GAP) {
       const flew = s.acc;
@@ -147,6 +179,14 @@ defineNode({
       width: Math.max(0, n.in('width')), depth: Math.max(0, n.in('depth')), height: Math.max(0, n.in('height')),
       along: along ? [along.x1, along.z1, along.x2, along.z2] : null });
   },
+  // how many leaves lie on the ground right under a foot at (x, y) (for Footsteps: walking on leaves sounds like it)
+  underfoot(n, x, y) {
+    const s = n.state;
+    if (!s.cells || s.branch) return 0;
+    let count = 0;
+    for (const dx of [-CELL_W, 0, CELL_W]) { const cell = s.cells.get(cellKey(x + dx, y)); if (cell) count += cell.leaves.length; }
+    return count;
+  },
   read: {
     leaves: (n) => n.state.told.leaves,
     strength: (n) => n.state.told.strength,
@@ -166,6 +206,7 @@ function build(n) {
   const s = n.state, [cx, cy, cz = 0] = n.me.home, rnd = seeded(`leaves ${cx} ${cy} ${cz}`);
   const count = Math.max(0, Math.min(5000, Math.round(n.in('count')))), w = Math.max(0, n.in('width')), d = Math.max(0, n.in('depth')), h = Math.max(0, n.in('height'));
   Object.assign(s, { key: layoutKey(n), rnd, leaves: [], flying: [], cells: new Map(), dirty: new Set(), sinking: new Set(), still: count, seen: s.seen || new Map(), seenKick: s.seenKick || new Map(), acc: 0, accStr: 0, accWhere: [cx, cy, cz], toldAt: -1,
+    seenGather: s.seenGather || new Map(), seenFling: s.seenFling || new Map(), holding: [],
     branch: n.in('branch') ? ledgeOf(n) : null, fellAcc: 0, fellAt: -1 });
   if (s.branch) {                                                    // along the branch, clinging on and around it
     for (let i = 0; i < count; i++) {
@@ -257,6 +298,51 @@ function kickAt(n, f, dir) {
     flew++;
   }
   return flew;
+}
+
+// A scoop: the leaves lying just in front of her feet (the top of the heap first, then the nearest), up to two
+// handfuls, go into her hands (on a branch, the ones clinging there); returns how many.
+function gatherAt(n, f) {
+  const s = n.state, rnd = s.rnd, dir = f.facing || 1, at = f.x + dir * 25, near = [];
+  for (const l of s.leaves) {
+    const ahead = (l.x - f.x) * dir;
+    if (l.fly || l.hold || ahead < -15 || ahead > GRAB_REACH || Math.abs(l.y - f.y) > REACH || l.z < f.z - 30 || l.z > f.z + 90) continue;
+    near.push([Math.abs(l.x - at) + Math.abs(l.y - f.y) * 0.5 - l.z * 0.5, l]);
+  }
+  near.sort((a, b) => a[0] - b[0]);
+  for (const [, l] of near.slice(0, GRAB)) {
+    if (l.cell) { const i = l.cell.leaves.indexOf(l); if (i >= 0) l.cell.leaves.splice(i, 1); s.dirty.add(l.cell); l.cell = null; }
+    if (!l.moved) { l.moved = true; s.still--; }
+    Object.assign(l, { fly: true, hang: null, sink: undefined, vx: 0, vy: 0, vz: 0, spin: (rnd() * 2 - 1) * 3, tv: 2 + rnd() * 3,
+      hold: { who: f.who, ox: (rnd() * 2 - 1) * 13, oy: (rnd() * 2 - 1) * 22, oz: rnd() * 16 - 6 } });
+    s.holding.push(l);
+  }
+  return Math.min(near.length, GRAB);
+}
+
+// The throw: what she holds flies up over her head, spreading as it goes (a little the way she faces), to flutter
+// down all around her; returns how many.
+function throwHeld(n, who, dir) {
+  const s = n.state, rnd = s.rnd, kick = Math.max(0, n.in('kick'));
+  let flew = 0;
+  for (let i = s.holding.length - 1; i >= 0; i--) {
+    const l = s.holding[i];
+    if (l.hold.who !== who) continue;
+    s.holding.splice(i, 1); l.hold = null;
+    launch(n, l, (dir * (30 + rnd() * 90) + (rnd() * 2 - 1) * 110) * kick, (rnd() * 2 - 1) * 80 * kick, (420 + rnd() * 280) * kick);
+    flew++;
+  }
+  return flew;
+}
+
+// Where someone's hands are: their body says (a Character's hands); with no body, about where a person's would be
+// (low while scooping, high as she throws).
+function handsOf(who, f) {
+  let h = null;
+  who.each((m) => { if (!h && m.type.hands) h = m.type.hands(m); });
+  if (h) return h;
+  const up = Math.max(0, Math.min(1, ((f.toss ? f.toss.t : 0) - 0.5) / 0.24));
+  return { x: f.x + (f.facing || 1) * (45 - 40 * up), z: f.z + 14 + 160 * up };
 }
 
 // Everything resting within reach of (x, y, z) flies up and outwards; returns how many flew.

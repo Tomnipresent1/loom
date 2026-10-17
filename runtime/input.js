@@ -3,7 +3,8 @@
 // Taps (for jumping): a quick touch that hardly moves counts as a tap when it lifts; a finger that lands while another
 // is already held counts at once (the second thumb, while walking); Space / up / W count as they go down.
 // Flicks (for kicking): a quick sideways swipe (lifted within FLICK_MS, mostly sideways, at least FLICK_MOVE pixels)
-// kicks that way; K or down kicks the way she faces.
+// kicks that way; K or down kicks the way she faces. A quick swipe up (mostly upwards) is a toss: she bends down,
+// scoops up the leaves at her feet and throws them in the air; T on a keyboard.
 // Tilt can join later behind the same poll().
 
 const KEYS = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1] };
@@ -11,13 +12,15 @@ const TAP_KEYS = new Set(['Space', 'ArrowUp', 'KeyW']);
 const TAP_MS = 200, TAP_MOVE = 24;     // a tap: lifted within this long, having moved less than this many pixels
 const KICK_KEYS = new Set(['KeyK', 'ArrowDown', 'KeyS']);
 const FLICK_MS = 320, FLICK_MOVE = 40;  // a flick: lifted within this long, having moved at least this far, mostly sideways
+const TOSS_KEYS = new Set(['KeyT']);
 
 export function createInput(canvas) {
   const held = new Set();
-  let taps = 0, kick = 0;                // kick: 0 = none, -1 / 1 = left / right, 2 = the way she faces
+  let taps = 0, kick = 0, toss = false;  // kick: 0 = none, -1 / 1 = left / right, 2 = the way she faces
   addEventListener('keydown', (e) => {
     if (TAP_KEYS.has(e.code)) { if (!e.repeat) taps++; e.preventDefault(); }
     if (KICK_KEYS.has(e.code) && !e.repeat) kick = 2;
+    if (TOSS_KEYS.has(e.code) && !e.repeat) toss = true;
     if (KEYS[e.code]) { held.add(e.code); e.preventDefault(); }
   });
   addEventListener('keyup', (e) => held.delete(e.code));
@@ -42,6 +45,7 @@ export function createInput(canvas) {
     const held = performance.now() - f.t0, dx = f.x - f.x0, dy = f.y - f.y0;
     if (e.type === 'pointerup' && !f.tapped && held < TAP_MS && Math.hypot(dx, dy) < TAP_MOVE) taps++;
     else if (e.type === 'pointerup' && held < FLICK_MS && Math.abs(dx) >= FLICK_MOVE && Math.abs(dx) > Math.abs(dy) * 1.5) kick = Math.sign(dx);
+    else if (e.type === 'pointerup' && held < FLICK_MS && -dy >= FLICK_MOVE && -dy > Math.abs(dx) * 1.5) toss = true;   // (up the screen = dy below 0)
     if (e.pointerId === steering) {
       const rest = [...fingers.keys()];
       steering = rest.length ? rest[rest.length - 1] : null;
@@ -57,8 +61,8 @@ export function createInput(canvas) {
       const now = performance.now();
       for (const [id, f] of fingers) if (f.waiting && now - f.t0 >= TAP_MS) { f.waiting = false; steering = id; }   // held on: it steers now
       const f = steering !== null ? fingers.get(steering) : null;
-      const out = { move: [x, y], pointer: f ? { x: f.x, y: f.y, id: steering } : null, taps, kick };
-      taps = 0; kick = 0;
+      const out = { move: [x, y], pointer: f ? { x: f.x, y: f.y, id: steering } : null, taps, kick, toss };
+      taps = 0; kick = 0; toss = false;
       return out;
     },
   };

@@ -10,9 +10,9 @@
   },
   "frames": [
     {
-      "title": "the last big pile of leaves: walk through it → crunch; land in it → a bigger crunch with a whump",
+      "title": "the last big pile: walk through → crunch; land in it → crunch + whump; toss it → crunch, swish",
       "at": [20, 30],
-      "size": [810, 574],
+      "size": [810, 838],
       "colour": "#c8632b"
     },
     {
@@ -37,7 +37,8 @@
     "once": { "type": "branch", "set": {}, "at": [880, 198] },
     "mark": { "type": "set-var", "set": { "var": "puppyOut", "value": true }, "at": [880, 308] },
     "tell": { "type": "send", "set": { "message": "puppy", "mode": "kind", "kind": "puppy" }, "at": [1160, 80] },
-    "beat": { "type": "wait", "set": { "seconds": 0.35 }, "at": [1160, 286] }
+    "beat": { "type": "wait", "set": { "seconds": 0.35 }, "at": [1160, 286] },
+    "toss": { "type": "crunch", "set": { "strength": 0.35, "volume": 1, "space": 0.2 }, "at": [600, 608] }
   },
   "wires": [
     ["count.value", "leaves.count"],
@@ -57,6 +58,10 @@
     ["once.no", "mark.go"],
     ["mark.then", "tell.go"],
     ["tell.then", "beat.go"],
-    ["beat.then", "leaves.scatter"]
+    ["beat.then", "leaves.scatter"],
+    ["leaves.scooped", "kick.go"],
+    ["leaves.thrown", "toss.go"],
+    ["leaves.leaves", "toss.leaves"],
+    ["leaves.where", "toss.where"]
   ]
 }

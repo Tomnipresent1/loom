@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "birds",
+  "vars": {},
+  "frames": [
+    {
+      "title": "robins: startled → wings, \"tic tic\"; to their other tree → wings",
+      "at": [20, 30],
+      "size": [530, 538],
+      "colour": "#c4553a"
+    },
+    { "title": "calm: a song now and then", "at": [565, 30], "size": [265, 538], "colour": "#8a6a4a" }
+  ],
+  "nodes": {
+    "birds": { "type": "birds", "set": { "other": "the tree to the left" }, "at": [40, 80] },
+    "wings": { "type": "wings", "set": { "birds": 3, "placed": true, "space": 0.3 }, "at": [320, 80] },
+    "alarm": { "type": "bird-call", "set": { "bird": "robin alarm", "placed": true, "space": 0.35 }, "at": [320, 300] },
+    "often": { "type": "now-and-then", "set": { "least": 8, "most": 18, "first": 4 }, "at": [600, 80] },
+    "ifCalm": { "type": "branch", "set": {}, "at": [600, 234] },
+    "song": {
+      "type": "bird-call",
+      "set": { "bird": "robin", "placed": true, "volume": 0.6, "near": 2600, "space": 0.4 },
+      "at": [600, 344]
+    }
+  },
+  "wires": [
+    ["birds.startled", "wings.go"],
+    ["wings.then", "alarm.go"],
+    ["birds.flewOff", "wings.go"],
+    ["often.now", "ifCalm.go"],
+    ["birds.calm", "ifCalm.condition"],
+    ["ifCalm.yes", "song.go"]
+  ]
+}

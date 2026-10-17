@@ -1,5 +1,5 @@
 import { defineNode } from '../engine/registry.js';
-import { SEND_INPUTS, heard, sends } from '../engine/sends.js';
+import { SEND_INPUTS, heard, sends, previewSends } from '../engine/sends.js';
 
 // NAMI's air: the quiet ambience under everything in Plum Blossom: a low bed of noise breathing slowly in and out, and a
 // very faint low drone. Held while its thing is in the scene.
@@ -15,4 +15,5 @@ defineNode({
     const v = heard(n, n.in('volume') / 2) * 2;
     if (v > 0.001) out.push({ key: `${n.me.id}.${n.id}`, kind: 'air', volume: v, ...sends(n) });
   },
+  preview: (get) => ({ hum: { kind: 'air', volume: Math.max(0, Math.min(2, get('volume'))), ...previewSends(get) }, seconds: 6 }),
 });

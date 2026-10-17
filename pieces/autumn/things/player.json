@@ -9,6 +9,12 @@
       "at": [20, 30],
       "size": [810, 332],
       "colour": "#6b4f99"
+    },
+    {
+      "title": "her footsteps: each sounds like what is underfoot (earth, bark, leaves); landing = both feet",
+      "at": [20, 377],
+      "size": [810, 296],
+      "colour": "#8a6a4a"
     }
   ],
   "nodes": {
@@ -18,7 +24,8 @@
       "at": [40, 80]
     },
     "body": { "type": "character", "set": {}, "at": [320, 80] },
-    "pieces": { "type": "painted-pieces", "set": {}, "at": [600, 80] }
+    "pieces": { "type": "painted-pieces", "set": {}, "at": [600, 80] },
+    "steps": { "type": "footsteps", "set": { "space": 0.15 }, "at": [600, 427] }
   },
-  "wires": []
+  "wires": [["body.step", "steps.go"], ["body.landed", "steps.land"]]
 }

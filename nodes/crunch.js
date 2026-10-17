@@ -1,5 +1,5 @@
 import { defineNode } from '../engine/registry.js';
-import { SEND_INPUTS, sends, clamp01 } from '../engine/sends.js';
+import { SEND_INPUTS, sends, clamp01, previewSends } from '../engine/sends.js';
 
 // The crunch of dry leaves (Autumn), made in code: a shower of tiny crackles, more and longer for more leaves, crisper
 // for a harder kick, with an optional soft low whump (landing in a pile). Every one is different. Heard from "where"
@@ -27,4 +27,6 @@ defineNode({
       n.fire('then');
     },
   },
+  // (heard on its own: how many leaves and how hard as set; wired from a Leaf pile, a typical kick through them)
+  preview: (get) => ({ play: [{ kind: 'crunch', leaves: Math.max(0, get('leaves')), strength: Math.max(0, Math.min(3, get('strength'))), thump: clamp01(get('thump')), volume: Math.max(0, Math.min(4, get('volume'))), ...previewSends(get) }] }),
 });

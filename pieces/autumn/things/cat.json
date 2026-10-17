@@ -5,15 +5,52 @@
   "vars": {},
   "frames": [
     {
-      "title": "the black cat: shy at first, she learns to trust her; startled, she scampers off (a rustle)",
+      "title": "the black cat: shy, trust grows; scampers when startled; mews at birds",
       "at": [20, 30],
-      "size": [530, 384],
+      "size": [530, 788],
       "colour": "#3a3540"
+    },
+    {
+      "title": "stuck up a branch: her first two calls to be noticed, then pleading",
+      "at": [300, 833],
+      "size": [580, 746],
+      "colour": "#5a4a66"
     }
   ],
   "nodes": {
     "cat": { "type": "cat", "set": { "size": 1.25 }, "at": [40, 80] },
-    "scamper": { "type": "rustle", "set": { "seconds": 0.25, "volume": 0.6, "space": 0.15 }, "at": [320, 80] }
+    "scamper": {
+      "type": "rustle",
+      "set": { "seconds": 0.25, "volume": 0.6, "space": 0.15, "placed": true },
+      "at": [320, 80]
+    },
+    "paws": { "type": "footsteps", "set": { "weight": 0.3, "volume": 0.7, "space": 0.15 }, "at": [320, 300] },
+    "mew": {
+      "type": "play-sound",
+      "set": { "sound": "cat-mew-1.wav", "volume": 0.34, "vary": 0.4, "placed": true, "space": 0.25 },
+      "at": [320, 550]
+    },
+    "first2": { "type": "compare", "set": { "b": 2, "op": "≤" }, "at": [320, 883] },
+    "which": { "type": "branch", "set": {}, "at": [320, 1059] },
+    "notice": {
+      "type": "play-sound",
+      "set": { "sound": "cat-stuck-1.wav", "volume": 1.2, "placed": true, "space": 0.25 },
+      "at": [600, 1039]
+    },
+    "plead": {
+      "type": "play-sound",
+      "set": { "sound": "cat-stuck-2.wav", "volume": 0.6, "placed": true, "space": 0.25 },
+      "at": [600, 1311]
+    }
   },
-  "wires": [["cat.startled", "scamper.go"]]
+  "wires": [
+    ["cat.startled", "scamper.go"],
+    ["cat.step", "paws.go"],
+    ["cat.mewed", "mew.go"],
+    ["cat.callNo", "first2.a"],
+    ["first2.result", "which.condition"],
+    ["cat.calls", "which.go"],
+    ["which.yes", "notice.go"],
+    ["which.no", "plead.go"]
+  ]
 }

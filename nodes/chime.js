@@ -1,6 +1,6 @@
 import { defineNode } from '../engine/registry.js';
 import { NOTES, noteFreq } from '../engine/notes.js';
-import { SEND_INPUTS, heard, sends } from '../engine/sends.js';
+import { SEND_INPUTS, heard, sends, previewSends, clamp01 } from '../engine/sends.js';
 
 defineNode({
   type: 'chime', title: 'Chime', kind: 'do',
@@ -20,4 +20,5 @@ defineNode({
       n.fire('then');
     },
   },
+  preview: (get) => ({ play: [{ kind: 'chime', tone: get('tone'), freq: noteFreq(get('note'), get('bend')), volume: clamp01(get('volume')), ...previewSends(get) }] }),
 });

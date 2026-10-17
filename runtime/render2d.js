@@ -8,12 +8,13 @@
 // Positions are [x, y, z]; this one ignores z.
 import { FADE } from '../engine/world.js';
 import { drawFigure } from './figure2d.js';
+import { pixelRatio } from './quality.js';
 
 export function createRenderer2D(canvas, { pictures } = {}) {
   const g = canvas.getContext('2d');
   let W = 0, H = 0, dpr = 1;
   const fit = () => {
-    dpr = Math.min(devicePixelRatio || 1, 2);
+    dpr = pixelRatio(devicePixelRatio);                      // (how sharp: runtime/quality.js, stepped down on a slow phone)
     W = innerWidth; H = innerHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
   };
@@ -39,6 +40,7 @@ export function createRenderer2D(canvas, { pictures } = {}) {
     toScene(camera, sx, sy) { return [(sx - W / 2) / camera.scale + camera.x, (sy - H / 2) / camera.scale + camera.y]; },
 
     frame({ camera, scene, draws, hud, note, wash, bars }) {
+      if (dpr !== pixelRatio(devicePixelRatio)) fit();
       const { x: cx, y: cy, scale: k } = camera;
       const sx = (x) => (x - cx) * k + W / 2, sy = (y) => (y - cy) * k + H / 2;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);

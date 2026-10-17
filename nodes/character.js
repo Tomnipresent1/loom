@@ -2,8 +2,8 @@ import { defineNode } from '../engine/registry.js';
 import { createRig, stepRig, rigPose } from '../engine/character.js';
 
 // A side-on person (Autumn's girl), drawn by code (runtime/character2d.js), moving by herself: she walks with her
-// thing's walking (her feet keep pace with the ground), jumps, lands with her knees giving, breathes and blinks
-// standing, her ponytail and scarf swinging. With a Walk and jump in the same thing she follows it exactly (on her feet
+// thing's walking (her feet keep pace with the ground), jumps, lands with her knees giving, kicks, bends down and
+// tosses leaves in the air, breathes and blinks standing, her ponytail and scarf swinging. With a Walk and jump in the same thing she follows it exactly (on her feet
 // or in the air, which way she faces, each landing); otherwise she works it out from how her thing moves.
 // Any piece of her can be a picture instead: add a Painted pieces box to the same thing.
 defineNode({
@@ -22,15 +22,23 @@ defineNode({
   },
   outputs: {
     step: { flow: true, help: 'Fires each time one of her feet comes down while she walks (for footsteps).' },
+    landed: { flow: true, help: 'Fires when she lands from a jump or a fall, both feet at once (for a landing footstep).' },
   },
   create(n) { n.state.rig = createRig(n.me.id); },
   tick(n, dt) {
-    const p = n.me.pos, f = feetOf(n);
-    const m = f ? { x: p[0], z: p[2] || 0, standing: f.standing, landing: f.landing, facing: f.facing, kick: f.kick }
+    const p = n.me.pos, f = feetOf(n), rig = n.state.rig, seen = rig.landingSeen;
+    const m = f ? { x: p[0], z: p[2] || 0, standing: f.standing, landing: f.landing, facing: f.facing, kick: f.kick, toss: f.toss }
       : { x: p[0], z: p[2] || 0, standing: (p[2] || 0) <= 0.5, landing: null, facing: 0 };
     m.scale = Math.max(0.05, n.in('height')) / 165;
-    const steps = stepRig(n.state.rig, m, dt);
+    const steps = stepRig(rig, m, dt);
+    if (seen !== 'start' && rig.landingSeen !== seen) n.fire('landed');
     for (let i = 0; i < steps && !n.me.removed; i++) n.fire('step');
+  },
+  // where her hands are in the scene (between the two): leaves she scoops up ride in them till she throws them
+  hands(n) {
+    const rig = n.state.rig, P = rigPose(rig), sc = Math.max(0.05, n.in('height')) / 165, p = n.me.pos;
+    const [a, b] = P.arms.map((r) => r.hand);
+    return { x: p[0] + ((a.x + b.x) / 2) * sc * rig.facing, z: (p[2] || 0) + ((a.y + b.y) / 2) * sc };
   },
   draw(n, out) {
     const rig = n.state.rig, pieces = piecesOf(n);

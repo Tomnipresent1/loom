@@ -1,12 +1,14 @@
 import { defineNode } from '../engine/registry.js';
 import { seeded } from '../engine/rng.js';
 import { quadrupedPose, PUPPY } from '../engine/quadruped.js';
+import { nearestBird } from './birds.js';
 
 // A playful puppy (Autumn; Tom's pick A: she stays and plays). She hides (unseen) until "come out" (e.g. the big pile
 // tells her when the girl lands in it), then leaps out towards the girl and plays: bounding to spots around her,
 // play-bowing with her tail going when the girl stands still, pouncing on piles of leaves (her landings burst them:
 // she has feet), and now and then a mad dash off and back (zoomies). The opposite of the shy cat: she's never far.
-// Drawn by runtime/dog2d.js.
+// Birds about (a Birds box): she runs under the nearest, looks up and yaps at it a while (a little hop now and then),
+// then back to playing. Drawn by runtime/dog2d.js.
 const GRAVITY = 1700;
 
 defineNode({
@@ -21,6 +23,7 @@ defineNode({
     run: { type: 'number', value: 360, help: 'Her running speed (dashes, zoomies).' },
     pounce: { type: 'number', value: 1, help: 'How keen she is on pouncing on leaf piles: 0 = never, 1 = often, 2 = always at it.' },
     zoomies: { type: 'number', value: 1, help: 'How often she has a mad dash off and back: 0 = never, 1 = now and then.' },
+    barks: { type: 'number', value: 1, label: 'barks at birds', help: 'How keen she is to bark at birds (a Birds box nearby): 0 = never, 1 = a puppy, 2 = she keeps at it.' },
     colour: { type: 'colour', value: '#c98a4b', help: 'Her coat.' },
     chest: { type: 'colour', value: '#f2dfc4', help: 'Her chest and muzzle.' },
     ears: { type: 'colour', value: '#8a5a30', help: 'Her ears.' },
@@ -31,11 +34,12 @@ defineNode({
     came: { flow: true, label: 'came out', help: 'Fires as she leaps out of hiding.' },
     pounced: { flow: true, help: 'Fires as she lands from a pounce.' },
     step: { flow: true, help: 'Fires as her paws come down while she runs about.' },
+    barked: { flow: true, help: 'Fires each time she yaps at a bird (wire an Animal call: puppy bark).' },
     hidden: { type: 'yesno', label: 'hiding?', help: 'Yes while she is still hidden.' },
   },
   create(n) {
     Object.assign(n.state, { rnd: seeded(`puppy ${n.me.id}`), hidden: null, vx: 0, vz: 0, facing: -1, mode: 'play', modeT: 0, target: null, retarget: 0,
-      bow: 0, bowT: 0, zoomT: 15, cycle: 0, landing: null, landings: 0, pouncing: false, blink: 2 });
+      bow: 0, bowT: 0, zoomT: 15, cycle: 0, landing: null, landings: 0, pouncing: false, blink: 2, barkCool: 0, yapT: 0, yapping: 0, look: 0, birdX: null });
   },
   on: {
     out(n) {
@@ -60,7 +64,27 @@ defineNode({
       s.retarget -= dt; s.zoomT -= dt * Math.max(0, n.in('zoomies'));
       let girlVx = 0;
       girl.each((m) => { if (m.type.feet) { const f = m.type.feet(m); if (f) girlVx = f.vx; } });
-      if (s.mode === 'bow') {                                         // a play-bow, tail going, then off she goes
+      // birds about: off to bark at them (when they fly, or she spots one perched low near her)
+      s.barkCool -= dt;
+      // (only birds near the girl: she stays with her; the girl walking off, she gives up and follows)
+      const keen = Math.max(0, n.in('barks')), byGirl = Math.abs(p[0] - g[0]) < 450;
+      const spotted = keen > 0 && byGirl && s.barkCool <= 0 && s.mode === 'play' ? nearestBird(n, p[0], 500) : null;
+      if (spotted && Math.abs(spotted.x - g[0]) < 600 && (spotted.flying || (spotted.z < 450 && Math.abs(spotted.x - p[0]) < 300))) { s.mode = 'bark'; s.modeT = 2.5 + rnd() * 2.5 * keen; s.yapT = 0.25; }
+      if (s.mode === 'bark') {                                        // under the bird, looking up, yapping; a hop at it now and then
+        const b = nearestBird(n, p[0], 700);
+        s.birdX = b ? b.x : null; s.birdZ = b ? b.z : 0;
+        if (!b || (s.modeT -= dt) <= 0 || Math.abs(p[0] - g[0]) > 600) { s.mode = 'play'; s.retarget = 0; s.barkCool = (8 + rnd() * 6) / Math.max(0.5, keen); s.birdX = null; }
+        else {
+          const dx = b.x - p[0];
+          if (Math.abs(dx) > 45) want = Math.sign(dx) * Math.min(n.in('run'), n.in('walk') + Math.abs(dx) * 0.8);
+          if ((s.yapT -= dt) <= 0 && Math.abs(dx) < 220) {
+            s.yapT = 0.55 + rnd() * 0.7; s.yapping = 0.16;
+            if (Math.abs(dx) <= 45 && rnd() < 0.3) s.vz = 230;
+            n.fire('barked');
+            if (n.me.removed) return;
+          }
+        }
+      } else if (s.mode === 'bow') {                                  // a play-bow, tail going, then off she goes
         if ((s.modeT -= dt) <= 0) { s.mode = 'play'; s.retarget = 0; }
       } else if (s.mode === 'zoom') {                                 // a mad dash off and back
         if (Math.abs(s.target - p[0]) < 30) { s.mode = 'play'; s.retarget = 0; }
@@ -95,8 +119,11 @@ defineNode({
       p[0] = clampX(n, p[0] + s.vx * dt);
     }
     if (Math.abs(s.vx) > 10) s.facing = Math.sign(s.vx);
+    else if (s.mode === 'bark' && s.birdX !== null) s.facing = Math.sign(s.birdX - p[0]) || s.facing;
     else if (girl && s.mode !== 'bow') s.facing = Math.sign(girl.pos[0] - p[0]) || s.facing;
     s.bow += ((s.mode === 'bow' ? 1 : 0) - s.bow) * Math.min(1, dt * 7);
+    s.look += ((s.mode === 'bark' ? Math.min(1, Math.max(0.3, s.birdZ / 200)) : 0) - s.look) * Math.min(1, dt * 5);
+    s.yapping = Math.max(0, s.yapping - dt);
     const before = s.cycle;
     s.cycle += (Math.abs(s.vx) * dt) / (55 * size);
     if (!air && Math.floor(before * 2) !== Math.floor(s.cycle * 2) && !n.me.removed) n.fire('step');
@@ -113,8 +140,8 @@ defineNode({
     if (s.hidden !== false) return;
     const size = Math.max(0.1, n.in('size')), air = (n.me.pos[2] || 0) > 0;
     out.push({ kind: 'dog', at: n.me.pos, facing: s.facing, scale: size, colour: n.in('colour'), chest: n.in('chest'), ears: n.in('ears'), alpha: n.in('opacity'),
-      tongue: Math.abs(s.vx) > 200 || s.mode === 'bow',
-      pose: quadrupedPose({ phase: s.cycle % 1, speed: Math.abs(s.vx) / (150 * size), bow: s.bow, leap: air ? 1 : 0, wag: 1, t: n.world.time, blink: s.blink < 0 }, PUPPY) });
+      tongue: Math.abs(s.vx) > 200 || s.mode === 'bow' || s.yapping > 0,
+      pose: quadrupedPose({ phase: s.cycle % 1, speed: Math.abs(s.vx) / (150 * size), bow: s.bow, leap: air ? 1 : 0, lookUp: s.look, wag: 1, t: n.world.time, blink: s.blink < 0 }, PUPPY) });
   },
   read: { hidden: (n) => n.state.hidden !== false },
 });

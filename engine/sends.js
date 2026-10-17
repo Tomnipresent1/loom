@@ -24,3 +24,14 @@ export function heard(n, volume) {
 }
 
 export const sends = (n) => ({ space: clamp01(n.in('space')), echo: clamp01(n.in('echo')) });
+
+// Hearing a sound box on its own (the editor's ▶ hear it): a box type's preview(get) says what it would play with the
+// values it has now (get(pin) = its setting, or the default where nothing is set or a wire feeds it), heard right
+// next to it (no distance, no pan): { play: [one-shots], repeat: { times, gap } } or { hum: held sound, seconds }, or null.
+export const previewSends = (get) => ({ space: clamp01(get('space')), echo: clamp01(get('echo')), pan: 0 });
+
+// where a sound heard from `at` sits, left (-1) to right (1): by its angle from the listener, so far-off sounds pan less
+export function panFrom(n, at) {
+  const ear = n.world.listener(), dx = at[0] - ear[0], dy = (at[1] || 0) - (ear[1] || 0);
+  return (0.8 * dx) / Math.hypot(dx, dy, 600);
+}

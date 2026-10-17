@@ -5,9 +5,9 @@
   "vars": {},
   "frames": [
     {
-      "title": "a carpet of leaves along the ground: every walk rustles",
+      "title": "a carpet of leaves: every walk rustles; scoop and toss them too",
       "at": [20, 30],
-      "size": [530, 574],
+      "size": [530, 838],
       "colour": "#9a5a2a"
     }
   ],
@@ -15,8 +15,8 @@
     "leaves": {
       "type": "leaf-pile",
       "set": {
-        "count": 1200,
-        "width": 9000,
+        "count": 1360,
+        "width": 10200,
         "depth": 300,
         "height": 0,
         "size": 16,
@@ -26,7 +26,8 @@
       "at": [40, 80]
     },
     "kick": { "type": "crunch", "set": { "volume": 0.8, "space": 0.15 }, "at": [320, 80] },
-    "land": { "type": "crunch", "set": { "thump": 0.3, "volume": 0.8, "space": 0.2 }, "at": [320, 344] }
+    "land": { "type": "crunch", "set": { "thump": 0.3, "volume": 0.8, "space": 0.2 }, "at": [320, 344] },
+    "toss": { "type": "crunch", "set": { "strength": 0.35, "volume": 0.8, "space": 0.2 }, "at": [320, 608] }
   },
   "wires": [
     ["leaves.kicked", "kick.go"],
@@ -36,6 +37,10 @@
     ["leaves.burst", "land.go"],
     ["leaves.leaves", "land.leaves"],
     ["leaves.strength", "land.strength"],
-    ["leaves.where", "land.where"]
+    ["leaves.where", "land.where"],
+    ["leaves.scooped", "kick.go"],
+    ["leaves.thrown", "toss.go"],
+    ["leaves.leaves", "toss.leaves"],
+    ["leaves.where", "toss.where"]
   ]
 }

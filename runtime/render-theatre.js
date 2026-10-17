@@ -8,7 +8,8 @@
 //            "flat", lying on the ground (foreshortened like the ground itself)
 //   block:   a plain upright block standing on its foot (for blocking out a scene)
 //   plank:   a ledge drawn as a thick line, its top edge where walkers stand
-//   character: a side-on person (runtime/character2d.js) standing on her feet; cat: a cat (runtime/cat2d.js); dog: a puppy (runtime/dog2d.js)
+//   character: a side-on person (runtime/character2d.js) standing on her feet; cat: a cat (runtime/cat2d.js); dog: a puppy (runtime/dog2d.js);
+//            bird: a small bird, perched or flying (runtime/bird2d.js)
 // It also draws the side view (camera style "side", a side-scroller): the same maths with a level camera standing in
 // front of the followed thing; there nothing fades for being in the way (things passing in front are the point).
 import { theatreProject, theatreGround, theatreFade, theatrePersonFade, sidePick, sideFade, sideHaze, SKY_DEFAULTS } from '../engine/camera.js';
@@ -18,6 +19,8 @@ import { drawFigure } from './figure2d.js';
 import { drawCharacter } from './character2d.js';
 import { drawCat } from './cat2d.js';
 import { drawDog } from './dog2d.js';
+import { drawBird } from './bird2d.js';
+import { pixelRatio } from './quality.js';
 
 const LEAF_SLICE = 20;          // leaves are drawn in slices this deep (front to back), sorted with everything else
 // trees and hills are worked out once per set of numbers (engine/shapes.js), then only placed and lit each frame
@@ -38,7 +41,7 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
   const g = canvas.getContext('2d');
   let W = 0, H = 0, dpr = 1;
   const fit = () => {
-    dpr = Math.min(devicePixelRatio || 1, 2);
+    dpr = pixelRatio(devicePixelRatio);                      // (how sharp: runtime/quality.js, stepped down on a slow phone)
     W = innerWidth; H = innerHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
   };
@@ -68,6 +71,7 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
     },
 
     frame({ camera, scene, draws, hud, note, wash, bars }) {
+      if (dpr !== pixelRatio(devicePixelRatio)) fit();
       const set = camera.set, hy = set.horizon * H, side = camera.style === 'side';
       const P = (x, y, z) => theatreProject(camera, set, W, H, x, y, z);
       const fade = side ? (x, depth) => sideFade(set, depth) : (x, depth) => theatreFade(camera, set, camera.youX, x, depth);
@@ -133,7 +137,7 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
         } else if (d.kind === 'picture') {
           const p = P(d.at[0], d.at[1], d.at[2] || 0);
           if (p && p[3] < set.haze * 4) list.push([d.flat ? p[3] + 1e6 : p[3], d, p]);     // (lying flat: part of the ground, drawn first)
-        } else if (d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog') {
+        } else if (d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird') {
           const p = P(d.at[0], d.at[1], d.at[2] || 0);
           if (p && p[3] < set.haze * 3) list.push([p[3], d, p]);
         } else if (d.kind === 'trail' && d.points.length > 1) {
@@ -184,14 +188,15 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
         // people fade their own way (NAMI v3.12): once they have passed behind you they fade quickly, wherever they are
         // on screen, so nobody ever looms up huge in front of the lens (camera settings: people fade from / gone by)
         const t = air(p[3]);                        // (side view: how much air lies in front of it)
-        let a = (d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog') && !side ? theatrePersonFade(set, p[3])
+        let a = (d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird') && !side ? theatrePersonFade(set, p[3])
           : fade(d.kind === 'trail' ? d.points[d.points.length - 1][0] : d.at[0], p[3]);
-        if (d.kind === 'picture' || d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'disc') a *= 1 - 0.6 * t;   // (pictures can't be coloured: they fade)
+        if (d.kind === 'picture' || d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird' || d.kind === 'disc') a *= 1 - 0.6 * t;   // (pictures can't be coloured: they fade)
         if (a < 0.02) continue;
         if (d.kind === 'figure') { drawFigure(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); continue; }
         if (d.kind === 'character') { drawCharacter(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a, pictures); g.globalAlpha = 1; continue; }
         if (d.kind === 'cat') { drawCat(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
         if (d.kind === 'dog') { drawDog(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
+        if (d.kind === 'bird') { drawBird(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
         if (d.kind === 'disc') {
           const r = d.radius * p[2], foot = P(d.at[0], d.at[1], 0);
           if (foot) {                               // a soft shadow on the ground under it

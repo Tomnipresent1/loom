@@ -5,6 +5,12 @@
   "start": "start",
   "messages": { "puppy": { "about": "the girl has stirred up the big pile: the puppy hiding in it comes out" } },
   "vars": {},
-  "sounds": {},
+  "sounds": {
+    "cat-mew-1.wav": { "credit": "steffcaffrey, Freesound (pack 16113)", "licence": "CC0" },
+    "cat-stuck-1.wav": { "credit": "steffcaffrey, Freesound (pack 16113)", "licence": "CC0" },
+    "cat-stuck-2.wav": { "credit": "steffcaffrey, Freesound (pack 16113)", "licence": "CC0" },
+    "dog-yip-1.mp3": { "credit": "ElevenLabs", "licence": "CC0" },
+    "dog-yip-2.ogg": { "credit": "ElevenLabs", "licence": "CC0" }
+  },
   "things": ["bush"]
 }

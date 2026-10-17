@@ -1,5 +1,5 @@
 import { defineNode } from '../engine/registry.js';
-import { SEND_INPUTS, sends } from '../engine/sends.js';
+import { SEND_INPUTS, sends, previewSends } from '../engine/sends.js';
 
 // A branch taking a weight (Autumn), made in code: a hollow woody knock, and for a harder landing a short strained
 // creak of wood. Every one a little different. Heard from "where" (left / right of the listener pans it).
@@ -24,4 +24,5 @@ defineNode({
       n.fire('then');
     },
   },
+  preview: (get) => ({ play: [{ kind: 'creak', hard: Math.max(0, get('hard')), volume: Math.max(0, Math.min(4, get('volume'))), ...previewSends(get) }] }),
 });

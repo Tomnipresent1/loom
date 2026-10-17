@@ -13,6 +13,7 @@ import { createCards } from './cards.js';
 import { createInput } from './input.js';
 import { connectLive } from './live.js';
 import { createAudio } from './audio.js';
+import { QUALITY, view, resFor, createAutoRes, clockSteps, createFps } from './quality.js';
 
 const pieceName = new URLSearchParams(location.search).get('piece') || 'glow';
 const folder = `pieces/${pieceName}/`;
@@ -33,7 +34,7 @@ document.getElementById('fs').onclick = () => {
   if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {});
 };
 
-let loaded = null, world = null, camera = null, note = null, taps = 0, kick = 0;
+let loaded = null, world = null, camera = null, note = null, taps = 0, kick = 0, toss = false;
 
 // ---- sound: starts on the first touch or key (phones insist), sleeps when the page is hidden, ♪ turns it off/on ----
 const audio = createAudio({ soundUrl: (f) => `${folder}sounds/${encodeURIComponent(f)}` });
@@ -44,6 +45,30 @@ showSound();
 soundBtn.onclick = (e) => { e.stopPropagation(); audio.unlock(); audio.muted = !audio.muted; try { localStorage.setItem('loom.muted', audio.muted ? '1' : '0'); } catch {} showSound(); };
 for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => audio.unlock(), { capture: true });
 document.addEventListener('visibilitychange', () => audio.sleep(document.hidden));
+
+// ---- smooth on any phone (runtime/quality.js): how sharp it is drawn (AUTO steps down on a slow phone and remembers
+// what this phone needed); ◐ shows how it is running (sharpness, frames a second), and tapped again while that shows,
+// picks the next of auto / smooth / sharp. (◐ is off the page since Tom's word, 2026-10-17: auto just does it; the
+// line to put it back is in index.html.) ----
+const embedded = window.top !== window;              // (the editor's little preview never remembers a step down)
+const stored = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const store = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+let quality = QUALITY.includes(stored('loom.quality')) ? stored('loom.quality') : 'auto';
+const autoRes = createAutoRes(embedded ? 0 : Number(stored('loom.autores')) || 0), fps = createFps();
+const sharpen = () => { view.res = resFor(quality, autoRes); };
+sharpen();
+const qualityBtn = document.getElementById('hq') || document.createElement('button');   // (an older page may not have it)
+const howItRuns = () => `${quality} · drawn at ${view.res}× · ${Math.round(fps.fps)} frames a second${note && note.age > 0.6 ? ' · tap ◐ again to change' : ''}`;
+qualityBtn.onclick = (e) => {
+  e.stopPropagation();
+  if (note && note.quality && note.age < 2.2) {
+    quality = QUALITY[(QUALITY.indexOf(quality) + 1) % QUALITY.length];
+    store('loom.quality', quality);
+    if (quality === 'auto') { autoRes.step = 0; autoRes.reset(); if (!embedded) store('loom.autores', '0'); }   // (auto again: starts sharp, finds its level afresh)
+    sharpen();
+  }
+  note = { text: '', age: 0, quality: true };
+};
 
 function showProblems(list) {
   problemsBox.textContent = list.length ? `The piece "${pieceName}" has ${list.length} problem${list.length > 1 ? 's' : ''}:\n\n• ${list.join('\n• ')}` : '';
@@ -98,14 +123,17 @@ if (!document.querySelector('meta[name="loom-published"]')) connectLive((file) =
   else if (/^(engine|nodes|runtime)\/|^index\.html$/.test(file)) location.reload();
 }, () => load('caught up after reconnecting'));      // back in Wi-Fi / screen back on: fetch whatever was missed
 
-// ---- the loop: fixed 60 steps a second, drawn every screen frame ----
+// ---- the loop: fixed 60 steps a second (never more than a few a frame: the clock's safety catch), drawn every
+// screen frame ----
 const STEP = 1 / 60;
 let last = performance.now(), spare = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.1, (now - last) / 1000);
+  const gap = now - last, dt = Math.min(0.1, gap / 1000);
   last = now;
   if (!world) return;
+  fps.feed(gap);
+  if (quality === 'auto' && autoRes.feed(gap, !document.hidden)) { sharpen(); if (!embedded) store('loom.autores', String(autoRes.step)); }
   const scene = loaded.files.scene;
   const set = cameraSettings(scene), renderer = renderers[set.style];
   const follow = set.follow && world.byId.get(set.follow);
@@ -130,7 +158,10 @@ function frame(now) {
   pressed.push(...buttons.take(), ...cards.take());   // button and card presses go to the next step only (once each)
   taps += raw.taps;                                    // taps (a quick touch, or space): to the next step only, too
   if (raw.kick) kick = raw.kick;                       // a kick (a flick, or K): likewise
-  while (spare >= STEP) { world.step(STEP, { move: raw.move, target, finger, pressed: pressed.splice(0), tap: taps > 0, kick }); taps = 0; kick = 0; spare -= STEP; }
+  if (raw.toss) toss = true;                           // a toss (a swipe up, or T): likewise
+  const clock = clockSteps(spare, STEP);
+  spare = clock.spare;
+  for (let i = 0; i < clock.run; i++) { world.step(STEP, { move: raw.move, target, finger, pressed: pressed.splice(0), tap: taps > 0, kick, toss }); taps = 0; kick = 0; toss = false; }
   if (world.request) return answer(world.request);     // a Start again box asked: begin again, or leave
   buttons.update(world.buttons());
   cards.update(world.cards());
@@ -138,6 +169,7 @@ function frame(now) {
   audio.hums(world.hums());
   checkMissing();
   if (note) note.age += dt;
+  if (note && note.quality) note.text = howItRuns();
   renderer.frame({ camera, scene, draws: world.draws(), hud: world.hud, note, wash: world.wash(), bars: world.bars() });
 }
 // Start again: begin the scene afresh, keeping the piece's variables (e.g. the ink); or leave for the list of pieces
@@ -148,10 +180,12 @@ function answer(request) {
   loaded = { files: loaded.files, blueprints: world.blueprints };
   world = new World(loaded, { pieceVars: keep });
   world.begin();
-  camera = null; pressed.length = 0; taps = 0; kick = 0;
+  camera = null; pressed.length = 0; taps = 0; kick = 0; toss = false;
 }
 
 // A handle for the Machine to look inside from the browser pane (read state, step time by hand). Harmless otherwise.
-window.LOOM = { get world() { return world; }, get loaded() { return loaded; }, get camera() { return camera; }, STEP, audio };
+// (frame: one whole frame by hand, at the time given; the hidden pane draws none. Replace requestAnimationFrame with a
+// do-nothing first, or each one queues another loop.)
+window.LOOM = { get world() { return world; }, get loaded() { return loaded; }, get camera() { return camera; }, STEP, audio, view, autoRes, get quality() { return quality; }, frame };
 
 load(null).then(() => requestAnimationFrame(frame), (e) => showProblems([e.message]));
