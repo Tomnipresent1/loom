@@ -23,7 +23,7 @@ defineNode({
     run: { type: 'number', value: 360, help: 'Her running speed (dashes, zoomies).' },
     pounce: { type: 'number', value: 1, help: 'How keen she is on pouncing on leaf piles: 0 = never, 1 = often, 2 = always at it.' },
     zoomies: { type: 'number', value: 1, help: 'How often she has a mad dash off and back: 0 = never, 1 = now and then.' },
-    barks: { type: 'number', value: 1, label: 'barks at birds', help: 'How keen she is to bark at birds (a Birds box nearby): 0 = never, 1 = a puppy, 2 = she keeps at it.' },
+    barks: { type: 'number', value: 1, label: 'barks at birds', help: 'How keen she is to bark at birds and squirrels (a Birds or Squirrels box nearby): 0 = never, 1 = a puppy, 2 = she keeps at it.' },
     colour: { type: 'colour', value: '#c98a4b', help: 'Her coat.' },
     chest: { type: 'colour', value: '#f2dfc4', help: 'Her chest and muzzle.' },
     ears: { type: 'colour', value: '#8a5a30', help: 'Her ears.' },
@@ -34,7 +34,7 @@ defineNode({
     came: { flow: true, label: 'came out', help: 'Fires as she leaps out of hiding.' },
     pounced: { flow: true, help: 'Fires as she lands from a pounce.' },
     step: { flow: true, help: 'Fires as her paws come down while she runs about.' },
-    barked: { flow: true, help: 'Fires each time she yaps at a bird (wire an Animal call: puppy bark).' },
+    barked: { flow: true, help: 'Fires each time she yaps at a bird (wire an Animal call: puppy bark, or a recorded yip with Play sound).' },
     hidden: { type: 'yesno', label: 'hiding?', help: 'Yes while she is still hidden.' },
   },
   create(n) {

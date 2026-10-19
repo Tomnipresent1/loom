@@ -11,7 +11,8 @@
 //                      | Autumn's leaves: { kind: 'crunch', leaves, strength, thump, pan } | branches: { kind: 'creak', hard, pan }
 //                      | Autumn's footsteps: { kind: 'step', under (earth / bark / wood / leaves), strength, weight, land, pitch, pan }
 //                      | Autumn's birds: { kind: 'bird', bird: 'robin' | 'robin alarm' | 'crow' | 'wood pigeon', pan }
-//                      | wings: { kind: 'wings', birds, pan } | animals: { kind: 'animal', animal: 'puppy bark' | 'cat mew' | 'cat calling', count, pan }
+//                      | wings: { kind: 'wings', birds, pan } | animals: { kind: 'animal', animal: 'puppy bark' | 'cat mew' | 'cat calling' | 'squirrel chatter', count, pan }
+//                      | nuts (acorns knocking): { kind: 'nuts', nuts, strength, pan }
 //   hums(list)         every frame: held sounds with keys: tones { freq, tone } or loops { kind: 'file', file, rate }
 //                      | NAMI's beds: { kind: 'wind', level, leaves (Autumn's dry leaves rattling in it) } | { kind: 'air' }
 //   sleep(bool), muted, missing (sound files that couldn't be found)
@@ -115,7 +116,7 @@ export function createAudio({ soundUrl = (f) => f } = {}) {
       src.buffer = buf; src.playbackRate.value = c.rate || 1;
       g.gain.value = 0.9 * c.volume;
       src.connect(g); g.connect(outAt(c));                     // (panned if it says where it is)
-      src.start();
+      src.start(0, Math.min(c.from || 0, buf.duration));       // (from: seconds skipped at the start)
     });
   }
 
@@ -310,8 +311,34 @@ export function createAudio({ soundUrl = (f) => f } = {}) {
     env.connect(out);
     for (const o of [buzz, warm, vib]) { o.start(t); o.stop(t + len + 0.05); }
   }
+  // A red squirrel's alarm: a quick run of hard "chuk"s (a buzzy little blip in a burst of breath, each a bit different),
+  // sometimes ending in a teeth-chattering "tchrrr". Written into one buffer (one sound source, however many chuks).
+  function chatter(out, vol) {
+    const sr = ac.sampleRate, n = 4 + Math.floor(Math.random() * 6), gap = 0.075 + Math.random() * 0.03, trill = Math.random() < 0.45;
+    const len = Math.ceil(sr * (n * gap * 1.2 + (trill ? 0.32 : 0) + 0.08)), buf = ac.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    let t = 0;
+    for (let i = 0; i < n; i++) {
+      const at = Math.floor(t * sr), L = Math.floor(sr * (0.022 + Math.random() * 0.014)), A = Math.floor(sr * 0.003), f = 950 + Math.random() * 350, amp = 0.7 + 0.3 * Math.random();
+      let ph = 0;
+      for (let j = 0; j < L && at + j < len; j++) {
+        const env = j < A ? j / A : Math.exp(-(j - A) / (L * 0.3));
+        ph += (2 * Math.PI * f * (1 - (0.3 * j) / L)) / sr;
+        d[at + j] += amp * env * (0.5 * Math.sign(Math.sin(ph)) + 0.8 * (Math.random() * 2 - 1));
+      }
+      t += gap * (0.85 + Math.random() * 0.3);
+    }
+    if (trill) {
+      const at = Math.floor(t * sr), L = Math.floor(sr * 0.28);
+      for (let j = 0; j < L && at + j < len; j++) d[at + j] += 0.45 * (1 - j / L) * (0.5 + 0.5 * Math.sin((2 * Math.PI * 38 * j) / sr)) * (Math.random() * 2 - 1);
+    }
+    const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), hp = ac.createBiquadFilter(), g = ac.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = 2400 + Math.random() * 600; bp.Q.value = 1.1;
+    hp.type = 'highpass'; hp.frequency.value = 600; g.gain.value = vol;
+    src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(out); src.start();
+  }
   function animal(c) {
     const out = outAt(c), v = c.volume;
+    if (c.animal === 'squirrel chatter') { chatter(out, 0.15 * v); return; }    // (a small animal: a little under the cat's and the puppy's)
     if (c.animal === 'cat mew') { mew(out, 0.075 * v); return; }               // (Tom: louder; the first ones were barely heard)
     if (c.animal === 'cat calling') { mew(out, 0.11 * v, true); return; }      // (stuck up a tree: she must be heard)
     const n = c.count > 0 ? Math.min(6, c.count) : 1 + Math.floor(Math.random() * 3), f = 620 + Math.random() * 120;
@@ -381,6 +408,31 @@ export function createAudio({ soundUrl = (f) => f } = {}) {
     burst(out, dur * 1.3, 0.025 * c.volume * (0.3 + amount), 3800, 1600);                       // the rustle under it
     if (c.thump > 0) burst(out, 0.22, 0.12 * c.thump * c.volume, 520, 110);                      // the whump
   }
+  // ---- Autumn's nuts: acorns knocking on the ground and on each other ----
+  // Little hollow wooden tocks written into one buffer (like the crunch): each a ring that dies in a few milliseconds,
+  // high and woody, with an overtone and a click on top; more nuts = more tocks over a slightly longer clatter; harder =
+  // louder and brighter. Panned left / right by where it happened.
+  function nutClatter(c) {
+    const sr = ac.sampleRate, many = Math.max(1, Math.min(14, Math.round(c.nuts || 1))), str = Math.max(0.2, Math.min(1.5, c.strength ?? 0.6));
+    const dur = 0.03 + Math.min(0.35, (many - 1) * 0.04), len = Math.ceil(sr * (dur + 0.09)), buf = ac.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < many; i++) {
+      const at = Math.floor((i ? Math.random() ** 1.3 * dur : 0) * sr), f = 1500 + Math.random() * 1700, f2 = f * (2.3 + Math.random() * 0.5);
+      const tau = sr * (0.006 + Math.random() * 0.008), amp = (0.55 + 0.45 * Math.random()) * (i ? 0.85 : 1), click = sr * 0.0012;
+      for (let j = 0; j < tau * 6 && at + j < len; j++) {
+        const e = Math.exp(-j / tau);
+        d[at + j] += amp * e * (Math.sin((2 * Math.PI * f * j) / sr) + 0.45 * Math.exp(-j / (tau * 0.4)) * Math.sin((2 * Math.PI * f2 * j) / sr))
+          + (j < click ? (Math.random() * 2 - 1) * amp * 0.5 : 0);
+      }
+    }
+    const out = ac.createGain();
+    let last = out;
+    if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = c.pan || 0; out.connect(p); last = p; }
+    route(last, c.space ?? 0.3, c.echo ?? 0);
+    const src = ac.createBufferSource(), lp = ac.createBiquadFilter(), g = ac.createGain();
+    src.buffer = buf; lp.type = 'lowpass'; lp.frequency.value = 3500 + 4500 * Math.min(1, str);
+    g.gain.value = 0.04 * c.volume * (0.45 + 0.55 * Math.min(1, str));        // (a kicked handful: a bit under a kick through leaves)
+    src.connect(lp); lp.connect(g); g.connect(out); src.start();
+  }
   // ---- Autumn's branches: a hollow woody knock, and for a harder landing a short creak ----
   // The knock: a low sine dropping in pitch, dying fast, with a click on top. The creak: a buzzy tone through a narrow
   // band, sagging in pitch, chopped by a fast flutter (wood fibres catching and slipping).
@@ -411,6 +463,7 @@ export function createAudio({ soundUrl = (f) => f } = {}) {
     for (const c of cmds) {
       if (c.kind === 'woodchimes' || c.kind === 'bird' || c.kind === 'rustle') garden(c);
       else if (c.kind === 'crunch') crunch(c);
+      else if (c.kind === 'nuts') nutClatter(c);
       else if (c.kind === 'creak') creak(c);
       else if (c.kind === 'step') step(c);
       else if (c.kind === 'wings') wings(c);

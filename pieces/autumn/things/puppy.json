@@ -7,15 +7,42 @@
     {
       "title": "the puppy: hiding in the big pile until it tells her; then she plays round the girl (paws patter, yaps at birds)",
       "at": [20, 30],
-      "size": [810, 550],
+      "size": [810, 428],
       "colour": "#c98a4b"
+    },
+    {
+      "title": "her yaps: one of the two recorded yips each time, at random (1 or 2)",
+      "at": [300, 473],
+      "size": [580, 634],
+      "colour": "#a0703f"
     }
   ],
   "nodes": {
     "told": { "type": "on-message", "set": { "message": "puppy" }, "at": [40, 80] },
     "pup": { "type": "puppy", "set": { "size": 1.4 }, "at": [320, 80] },
     "paws": { "type": "footsteps", "set": { "weight": 0.45, "volume": 0.8, "space": 0.15 }, "at": [600, 80] },
-    "yap": { "type": "animal-call", "set": { "animal": "puppy bark", "placed": true, "space": 0.25 }, "at": [600, 330] }
+    "roll": { "type": "random", "set": { "whole": true, "min": 1, "max": 2 }, "at": [320, 523] },
+    "is1": { "type": "compare", "set": { "b": 1, "op": "=" }, "at": [320, 701] },
+    "which": { "type": "branch", "set": {}, "at": [320, 857] },
+    "yip1": {
+      "type": "play-sound",
+      "set": { "sound": "dog-yip-1.mp3", "volume": 0.1, "vary": 0.4, "from": 0.27, "placed": true, "space": 0.25 },
+      "at": [600, 523]
+    },
+    "yip2": {
+      "type": "play-sound",
+      "set": { "sound": "dog-yip-2.ogg", "volume": 0.08, "vary": 0.4, "from": 0.18, "placed": true, "space": 0.25 },
+      "at": [600, 817]
+    }
   },
-  "wires": [["told.received", "pup.out"], ["pup.step", "paws.go"], ["pup.barked", "yap.go"]]
+  "wires": [
+    ["told.received", "pup.out"],
+    ["pup.step", "paws.go"],
+    ["pup.barked", "roll.go"],
+    ["roll.value", "is1.a"],
+    ["is1.result", "which.condition"],
+    ["roll.then", "which.go"],
+    ["which.yes", "yip1.go"],
+    ["which.no", "yip2.go"]
+  ]
 }

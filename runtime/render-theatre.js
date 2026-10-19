@@ -20,6 +20,7 @@ import { drawCharacter } from './character2d.js';
 import { drawCat } from './cat2d.js';
 import { drawDog } from './dog2d.js';
 import { drawBird } from './bird2d.js';
+import { drawSquirrel, drawKnothole } from './squirrel2d.js';
 import { pixelRatio } from './quality.js';
 
 const LEAF_SLICE = 20;          // leaves are drawn in slices this deep (front to back), sorted with everything else
@@ -137,7 +138,7 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
         } else if (d.kind === 'picture') {
           const p = P(d.at[0], d.at[1], d.at[2] || 0);
           if (p && p[3] < set.haze * 4) list.push([d.flat ? p[3] + 1e6 : p[3], d, p]);     // (lying flat: part of the ground, drawn first)
-        } else if (d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird') {
+        } else if (d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird' || d.kind === 'squirrel' || d.kind === 'knothole') {
           const p = P(d.at[0], d.at[1], d.at[2] || 0);
           if (p && p[3] < set.haze * 3) list.push([p[3], d, p]);
         } else if (d.kind === 'trail' && d.points.length > 1) {
@@ -190,13 +191,15 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
         const t = air(p[3]);                        // (side view: how much air lies in front of it)
         let a = (d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird') && !side ? theatrePersonFade(set, p[3])
           : fade(d.kind === 'trail' ? d.points[d.points.length - 1][0] : d.at[0], p[3]);
-        if (d.kind === 'picture' || d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird' || d.kind === 'disc') a *= 1 - 0.6 * t;   // (pictures can't be coloured: they fade)
+        if (d.kind === 'picture' || d.kind === 'figure' || d.kind === 'character' || d.kind === 'cat' || d.kind === 'dog' || d.kind === 'bird' || d.kind === 'squirrel' || d.kind === 'knothole' || d.kind === 'disc') a *= 1 - 0.6 * t;   // (pictures can't be coloured: they fade)
         if (a < 0.02) continue;
         if (d.kind === 'figure') { drawFigure(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); continue; }
         if (d.kind === 'character') { drawCharacter(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a, pictures); g.globalAlpha = 1; continue; }
         if (d.kind === 'cat') { drawCat(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
         if (d.kind === 'dog') { drawDog(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
         if (d.kind === 'bird') { drawBird(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
+        if (d.kind === 'squirrel') { drawSquirrel(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
+        if (d.kind === 'knothole') { drawKnothole(g, p[0], p[1], p[2], d, Math.max(0, Math.min(1, d.alpha)) * a); g.globalAlpha = 1; continue; }
         if (d.kind === 'disc') {
           const r = d.radius * p[2], foot = P(d.at[0], d.at[1], 0);
           if (foot) {                               // a soft shadow on the ground under it
@@ -254,6 +257,8 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
           drawTree(g, d, p, a, t, near(p[3]), (c) => paint(c, p[3]), pictures, dpr, W);
         } else if (d.kind === 'ridge') {
           drawRidge(g, d, p, a, t, tint, pictures, dpr, W);
+        } else if (d.kind === 'leafslice' && d.of.nuts) {
+          drawNuts(g, d, P, leafPalette(paint(d.of.colours[0], p[3]), paint(d.of.colours[1], p[3])), paint('#5e3f22', p[3]), a, dpr, W, H);
         } else if (d.kind === 'leafslice') {
           // each leaf: two curves from tip to tip, turned and squashed (lying flat, or tumbling in the air); all the leaves
           // of one shade go into one path (the transform is applied as each is added), then one fill per shade
@@ -320,6 +325,40 @@ export function createRendererTheatre(canvas, { pictures } = {}) {
 }
 
 // ---- Autumn's painted world ----
+// Nuts (a Leaf pile of nuts): little cartoon acorns, each a round nut in the pile's shades with a darker cap, a stalk
+// and a glint, sitting on where it lies (turned however it came to rest; turning over as it flies and rolls). One path
+// per shade, then the caps, then the glints.
+function drawNuts(g, d, P, pal, cap, a, dpr, W, H) {
+  const half = d.of.size / 2, put = [];
+  for (const l of d.ls) {
+    const q = P(l.x, l.y, l.z);
+    if (!q) continue;
+    const len = half * l.k * q[2];
+    if (len < 0.3 || q[0] < -len * 2 || q[0] > W + len * 2 || q[1] < -len * 2 || q[1] > H + len * 2) continue;
+    const turn = l.fly ? l.rot : l.tilt;
+    put.push([l.c, Math.cos(turn) * len, Math.sin(turn) * len, q[0], q[1] - 0.6 * len]);
+  }
+  if (!put.length) return;
+  const at = ([, cs, sn, x, y]) => g.setTransform(dpr * cs, dpr * sn, -dpr * sn, dpr * cs, dpr * x, dpr * y);
+  g.globalAlpha = a;
+  for (let c = 0; c < pal.length; c++) {                                 // the nuts
+    let any = false;
+    g.beginPath();
+    for (const t of put) if (t[0] === c) { at(t); g.moveTo(0.95, 0); g.ellipse(0.1, 0, 0.82, 0.62, 0, 0, Math.PI * 2); any = true; }
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (any) { g.fillStyle = pal[c]; g.fill(); }
+  }
+  g.beginPath();                                                         // the caps and stalks
+  for (const t of put) { at(t); g.moveTo(-0.1, 0); g.ellipse(-0.5, 0, 0.4, 0.68, 0, 0, Math.PI * 2); g.rect(-1.08, -0.08, 0.2, 0.16); }
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = cap; g.fill();
+  g.beginPath();                                                         // a glint on each
+  for (const t of put) { at(t); g.moveTo(0.62, -0.26); g.ellipse(0.38, -0.26, 0.24, 0.1, -0.2, 0, Math.PI * 2); }
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.globalAlpha = a * 0.45; g.fillStyle = '#fff6e0'; g.fill();
+  g.globalAlpha = 1;
+}
+
 // A Ledge drawn as a branch: its top edge is where walkers stand; thickest where it is held (the trunk end), tapering
 // to a thin tip, a lighter line along its top (the light from above), a few twigs up and out towards its free end(s).
 function drawBranch(g, d, P, a, col, W) {

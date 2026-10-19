@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "nut-pile",
+  "vars": {},
+  "frames": [
+    {
+      "title": "a little pile of acorns: kicked, thrown, scattered, landing → a clatter of tocks (the squirrels carry them off)",
+      "at": [20, 30],
+      "size": [550, 406],
+      "colour": "#a0703f"
+    }
+  ],
+  "nodes": {
+    "nuts": {
+      "type": "leaf-pile",
+      "set": {
+        "what": "nuts",
+        "count": 26,
+        "width": 140,
+        "depth": 50,
+        "height": 22,
+        "size": 18,
+        "colour": "#c07a2a",
+        "colour2": "#e8b45e",
+        "flutter": 0
+      },
+      "at": [40, 80]
+    },
+    "knock": { "type": "nut-clatter", "set": { "space": 0.15 }, "at": [320, 80] }
+  },
+  "wires": [
+    ["nuts.dropped", "knock.go"],
+    ["nuts.kicked", "knock.go"],
+    ["nuts.burst", "knock.go"],
+    ["nuts.scooped", "knock.go"],
+    ["nuts.leaves", "knock.nuts"],
+    ["nuts.strength", "knock.strength"],
+    ["nuts.where", "knock.where"]
+  ]
+}

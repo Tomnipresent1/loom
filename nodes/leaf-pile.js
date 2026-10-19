@@ -17,6 +17,10 @@ import { seeded } from '../engine/rng.js';
 // On a branch ("on a branch?", with a Ledge in the same thing): the leaves cling along the branch instead, riding its
 // bend; they shake loose when it swings (a landing, jumping on it), are knocked off when walked through, and drift down
 // now and then on their own. Once fallen they are leaves like any other (kickable). A branch can be shaken bare.
+// Nuts ("what": nuts; Tom, 2026-10-19: the squirrels' acorns): the same pile, but each piece is a little acorn, a bit
+// heavier than a leaf: kicked or thrown they don't fly as far, they drop instead of fluttering, bounce once or twice
+// and roll to a stop ("dropped" fires as they land: wire a Nut clatter). Walking through nudges them along. Squirrels
+// pick them up (the "nuts" hook and takeNut, below).
 const GRAVITY = 980;
 const RISE_DRAG = 0.8;     // rising leaves slow down quickly...
 const FALL_DRAG = 11;      // ...and drift down at about GRAVITY / FALL_DRAG = 90 units a second
@@ -30,6 +34,12 @@ const SHAKE = 30;          // a branch swinging slower than this (units a second
 const FELL_GAP = 0.25;     // leaves shaken down are told (fire "shaken down") at most this often, in seconds
 const GRAB = 36;           // the most leaves one scoop picks up (both hands full)
 const GRAB_REACH = 65;     // ...lying up to this far in front of her feet (and a little behind)
+// nuts: heavier than leaves
+const NUT_PUSH = 0.6;      // they leave a kick (or a throw) this much slower than a leaf would...
+const NUT_DRAG = 0.6;      // ...and hardly slow in the air (they drop, no fluttering)
+const NUT_BOUNCE = 0.32;   // landing hard they bounce back up this much (twice at most)...
+const NUT_ROLL = 5.5;      // ...then roll, slowing by this much a second, till they stop (not far: Tom)
+const DROP_GAP = 0.12;     // nuts landing are told (fire "dropped") at most this often, in seconds
 export const LEAF_COLOURS = 8;   // how many shades each pile's leaves come in (the renderers make them from colour, colour 2)
 
 defineNode({
@@ -48,6 +58,7 @@ defineNode({
     flutter: { type: 'number', value: 1, help: 'How much falling leaves sway and spin: 0 = they drop straight, 1 = normal.' },
     branch: { type: 'yesno', value: false, label: 'on a branch?', help: 'Hang the leaves along this thing\'s Ledge (a branch) instead of heaping them on the ground: they ride its bend, shake loose when it swings, get knocked off when walked through, and drift down now and then.' },
     drift: { type: 'number', value: 1.5, label: 'drift down', help: 'On a branch: about how many leaves drift down on their own each minute.' },
+    what: { type: 'choice', value: 'leaves', options: ['leaves', 'nuts'], setting: true, label: 'what', help: 'leaves, or nuts: little acorns, heavier than leaves (they drop, bounce and roll instead of fluttering, and don\'t fly as far). Squirrels collect nuts. "size" is then how long one acorn is (about 12).' },
   },
   outputs: {
     kicked: { flow: true, help: 'Fires while someone walks through and kicks leaves (at most about 11 times a second).' },
@@ -59,6 +70,8 @@ defineNode({
     fell: { flow: true, label: 'shaken down', help: 'On a branch: fires as leaves shake loose or drift down (at most 4 times a second); "how many flew" says how many.' },
     scooped: { flow: true, label: 'scooped up', help: 'Fires when someone bends down and scoops up leaves from it (a swipe up: Walk and jump\'s toss); "how many flew" says how many.' },
     thrown: { flow: true, help: 'Fires as the scooped leaves are thrown up into the air.' },
+    dropped: { flow: true, help: 'Nuts: fires as nuts land back on the ground and bounce (at most about 8 times a second); "how many flew" says how many.' },
+    left: { type: 'number', help: 'How many are still here (nuts: those the squirrels haven\'t taken).' },
   },
   create(n) { n.state.told = { leaves: 0, strength: 0, where: [...n.me.pos] }; build(n); },
   tick(n, dt) {
@@ -112,7 +125,7 @@ defineNode({
       }
       const speed = Math.abs(f.vx);
       if (!f.standing || speed < 8) continue;
-      const R = 18 + 0.6 * n.in('size'), p = Math.min(1.3, speed / 180) * 0.12 * dt * 60, str = Math.min(1.3, speed / 180);
+      const R = 18 + 0.6 * n.in('size'), p = Math.min(1.3, speed / 180) * (s.nuts ? 0.07 : 0.12) * dt * 60, str = Math.min(1.3, speed / 180);
       let flew = 0;
       for (const l of s.leaves) {
         if (l.fly || Math.abs(l.x - f.x) > R || Math.abs(l.y - f.y) > REACH || l.z > f.z + 70 || l.z < f.z - 30 || rnd() > p) continue;
@@ -137,9 +150,20 @@ defineNode({
       s.accStr = 0;
       if (n.me.removed) return;
     }
+    // nuts in the air drop (a little drag), bounce, then roll to a stop
+    if (s.nuts) {
+      nutsMove(n, dt);
+      if (s.dropAcc > 0 && n.world.time - s.dropAt >= DROP_GAP) {
+        const many = s.dropAcc;
+        s.dropAcc = 0; s.dropAt = n.world.time;
+        tell(n, 'dropped', many, Math.min(1.5, s.dropStr), s.dropWhere);
+        s.dropStr = 0;
+        if (n.me.removed) return;
+      }
+    }
     // the leaves in the air: rising slows fast, falling drifts down, swaying and spinning; landing, they lie flat
     const flutter = Math.max(0, n.in('flutter')), side = Math.exp(-SIDE_DRAG * dt), [w] = n.world.bounds;
-    for (let i = s.flying.length - 1; i >= 0; i--) {
+    for (let i = s.nuts ? -1 : s.flying.length - 1; i >= 0; i--) {
       const l = s.flying[i];
       l.vz += (-GRAVITY - (l.vz < 0 ? FALL_DRAG : RISE_DRAG) * l.vz) * dt;
       l.vx *= side; l.vy *= side;
@@ -155,7 +179,7 @@ defineNode({
     // columns that lost leaves (or gained one) settle: anything higher than the leaves under it can hold sinks down
     for (const cell of s.dirty) {
       cell.leaves.sort((a, b) => a.z - b.z);
-      cell.leaves.forEach((l, k) => { const most = k * cell.loft + THIN; if (l.z > most + 0.5) { l.sink = most; s.sinking.add(l); } });
+      cell.leaves.forEach((l, k) => { const most = k * cell.loft + s.thin; if (l.z > most + 0.5) { l.sink = most; s.sinking.add(l); } });
     }
     s.dirty.clear();
     for (const l of s.sinking) {
@@ -177,12 +201,18 @@ defineNode({
     const ln = n.state.branch, along = ln ? ln.type.ledge(ln) : null;
     out.push({ kind: 'leaves', at: n.me.pos, leaves: n.state.leaves, size: Math.max(1, n.in('size')), colours: [n.in('colour'), n.in('colour2')],
       width: Math.max(0, n.in('width')), depth: Math.max(0, n.in('depth')), height: Math.max(0, n.in('height')),
-      along: along ? [along.x1, along.z1, along.x2, along.z2] : null });
+      along: along ? [along.x1, along.z1, along.x2, along.z2] : null, nuts: !!n.state.nuts });
+  },
+  // nuts lying still on the ground (for Squirrels to fetch): { pile: this box, lying: [nut, ...] }; takeNut picks one up
+  nuts(n) {
+    const s = n.state;
+    if (!s.nuts || !s.leaves) return null;
+    return { pile: n, lying: s.leaves.filter((l) => !l.fly && !l.hold) };
   },
   // how many leaves lie on the ground right under a foot at (x, y) (for Footsteps: walking on leaves sounds like it)
   underfoot(n, x, y) {
     const s = n.state;
-    if (!s.cells || s.branch) return 0;
+    if (!s.cells || s.branch || s.nuts) return 0;
     let count = 0;
     for (const dx of [-CELL_W, 0, CELL_W]) { const cell = s.cells.get(cellKey(x + dx, y)); if (cell) count += cell.leaves.length; }
     return count;
@@ -192,10 +222,22 @@ defineNode({
     strength: (n) => n.state.told.strength,
     where: (n) => n.state.told.where,
     still: (n) => n.state.still || 0,
+    left: (n) => (n.state.leaves ? n.state.leaves.length : 0),
   },
 });
 
-const layoutKey = (n) => [n.in('count'), n.in('width'), n.in('depth'), n.in('height'), n.in('branch')].join('|');
+// A squirrel picks up a nut lying in a pile (from its "nuts" hook): it leaves the pile (the squirrel carries it).
+// Returns false if it has gone (kicked, scooped up, or another squirrel got there first).
+export function takeNut(pile, nut) {
+  const s = pile.state, i = s.leaves ? s.leaves.indexOf(nut) : -1;
+  if (i < 0 || nut.fly || nut.hold) return false;
+  s.leaves.splice(i, 1);
+  if (nut.cell) { const k = nut.cell.leaves.indexOf(nut); if (k >= 0) nut.cell.leaves.splice(k, 1); s.dirty.add(nut.cell); nut.cell = null; }
+  if (!nut.moved) { nut.moved = true; s.still--; }
+  return true;
+}
+
+const layoutKey = (n) => [n.in('count'), n.in('width'), n.in('depth'), n.in('height'), n.in('branch'), n.in('what')].join('|');
 // the Ledge box in the same thing, for leaves on a branch
 const ledgeOf = (n) => { let found = null; n.me.each((m) => { if (!found && m !== n && m.type.ledge) found = m; }); return found; };
 
@@ -207,7 +249,10 @@ function build(n) {
   const count = Math.max(0, Math.min(5000, Math.round(n.in('count')))), w = Math.max(0, n.in('width')), d = Math.max(0, n.in('depth')), h = Math.max(0, n.in('height'));
   Object.assign(s, { key: layoutKey(n), rnd, leaves: [], flying: [], cells: new Map(), dirty: new Set(), sinking: new Set(), still: count, seen: s.seen || new Map(), seenKick: s.seenKick || new Map(), acc: 0, accStr: 0, accWhere: [cx, cy, cz], toldAt: -1,
     seenGather: s.seenGather || new Map(), seenFling: s.seenFling || new Map(), holding: [],
-    branch: n.in('branch') ? ledgeOf(n) : null, fellAcc: 0, fellAt: -1 });
+    branch: n.in('branch') ? ledgeOf(n) : null, fellAcc: 0, fellAt: -1,
+    nuts: n.in('what') === 'nuts', dropAcc: 0, dropAt: -1, dropStr: 0, dropWhere: [cx, cy, cz] });
+  s.thin = s.nuts ? Math.max(2, n.in('size') * 0.45) : THIN;          // (an acorn is thicker than a leaf lying flat)
+  if (s.nuts) s.branch = null;                                        // (nuts lie on the ground)
   if (s.branch) {                                                    // along the branch, clinging on and around it
     for (let i = 0; i < count; i++) {
       s.leaves.push({
@@ -224,16 +269,16 @@ function build(n) {
     s.leaves.push({
       x: cx + (u * w) / 2, y: cy + ((rnd() * 2 - 1) * d) / 2, z: h * Math.max(0, 1 - u * u),   // (for now: the heap's height here)
       vx: 0, vy: 0, vz: 0, rot: rnd() * Math.PI * 2, spin: 0, tum: rnd() * Math.PI * 2, tv: 0,
-      tilt: (rnd() * 2 - 1) * (h > 5 ? 1.2 : 0.35), sq: h > 5 ? 0.5 + rnd() * 0.5 : 0.35 + rnd() * 0.3,
-      c: Math.floor(rnd() * LEAF_COLOURS), k: 0.75 + rnd() * 0.5, fly: false, moved: false,
+      tilt: s.nuts ? rnd() * Math.PI * 2 : (rnd() * 2 - 1) * (h > 5 ? 1.2 : 0.35), sq: s.nuts ? 1 : h > 5 ? 0.5 + rnd() * 0.5 : 0.35 + rnd() * 0.3,
+      c: Math.floor(rnd() * LEAF_COLOURS), k: s.nuts ? 0.85 + rnd() * 0.3 : 0.75 + rnd() * 0.5, fly: false, moved: false,
     });
   }
   // the columns: each reaches the heap's height there (the tallest spot in it), its leaves evenly stacked up to it
   for (const l of s.leaves) rest(s, l, false);
   for (const cell of s.cells.values()) {
     const top = Math.max(...cell.leaves.map((l) => l.z)), count = cell.leaves.length;
-    cell.loft = Math.max(THIN, top / count);
-    cell.leaves.forEach((l, k) => { l.z = k * cell.loft + rnd() * THIN; });
+    cell.loft = Math.max(s.thin, top / count);
+    cell.leaves.forEach((l, k) => { l.z = k * cell.loft + rnd() * (s.nuts ? 1 : THIN); });
   }
 }
 
@@ -253,7 +298,7 @@ function stackTop(s, x, y) {
   if (!cell || !cell.leaves.length) return 0;
   let top = 0;
   for (const l of cell.leaves) top = Math.max(top, l.z);
-  return top + 1;
+  return top + (s.nuts ? s.thin : 1);
 }
 
 // Leaves on a branch: put each where it clings (riding the branch's bend), and shake loose the ones where it swings
@@ -278,11 +323,45 @@ function hang(n, ln, dt) {
 }
 
 function launch(n, l, vx, vy, vz) {
-  const s = n.state, rnd = s.rnd;
-  Object.assign(l, { vx, vy, vz, fly: true, hang: null, from: l.z, sink: undefined, spin: (rnd() * 2 - 1) * 8, tv: 4 + rnd() * 8 });
+  const s = n.state, rnd = s.rnd, k = s.nuts ? NUT_PUSH : 1;          // (nuts are heavier: they leave slower)
+  Object.assign(l, { vx: vx * k, vy: vy * k, vz: vz * k, fly: true, hang: null, from: l.z, sink: undefined, spin: (rnd() * 2 - 1) * 8, tv: 4 + rnd() * 8, bounces: 0, rolling: false });
   if (l.cell) { const at = l.cell.leaves.indexOf(l); if (at >= 0) l.cell.leaves.splice(at, 1); s.dirty.add(l.cell); l.cell = null; }
   if (!l.moved) { l.moved = true; s.still--; }
   s.flying.push(l);
+}
+
+// Nuts on the move: in the air they drop (a little drag), turning over; landing hard they bounce (twice at most), then
+// roll along the ground, slowing, till they stop and lie where they are (on whatever lies there). Every touchdown
+// counts towards "dropped" (a clatter).
+function nutsMove(n, dt) {
+  const s = n.state, air = Math.exp(-NUT_DRAG * dt), slow = Math.exp(-NUT_ROLL * dt), [w] = n.world.bounds, r = Math.max(2, n.in('size') * 0.3);
+  const settle = (l, i) => {
+    Object.assign(l, { fly: false, rolling: false, vx: 0, vy: 0, vz: 0, tilt: l.rot, sq: 1 });
+    s.flying[i] = s.flying[s.flying.length - 1]; s.flying.pop();
+    rest(s, l);
+  };
+  for (let i = s.flying.length - 1; i >= 0; i--) {
+    const l = s.flying[i];
+    if (l.rolling) {                                                     // rolling along the ground
+      l.vx *= slow; l.vy *= slow;
+      l.x = Math.min(w, Math.max(0, l.x + l.vx * dt)); l.y += l.vy * dt;
+      l.rot += (l.vx * dt) / r;
+      l.z = stackTop(s, l.x, l.y);
+      if (Math.hypot(l.vx, l.vy) < 12) settle(l, i);
+      continue;
+    }
+    l.vz -= GRAVITY * dt; l.vx *= air; l.vy *= air; l.vz *= air;
+    l.rot += l.spin * dt;
+    l.x = Math.min(w, Math.max(0, l.x + l.vx * dt)); l.y += l.vy * dt; l.z += l.vz * dt;
+    const floor = stackTop(s, l.x, l.y);
+    if (l.vz >= 0 || l.z > floor) continue;
+    const hit = -l.vz;                                                   // touchdown: a tock
+    l.z = floor;
+    s.dropAcc++; s.dropStr = Math.max(s.dropStr, Math.min(1.5, hit / 400)); s.dropWhere = [l.x, l.y, l.z];
+    if (hit > 140 && l.bounces < 2) { l.vz = hit * NUT_BOUNCE; l.vx *= 0.55; l.vy *= 0.55; l.spin *= 0.6; l.bounces++; }
+    else if (Math.hypot(l.vx, l.vy) > 25) { l.rolling = true; l.vz = 0; }
+    else settle(l, i);
+  }
 }
 
 // A kick: what lies just in front of the foot (and a little either side of it) flies the way she kicks, the nearer the

@@ -37,6 +37,7 @@ import './painted-pieces.js';
 import './cat.js';
 import './puppy.js';
 import './birds.js';
+import './squirrels.js';
 // screens
 import './card.js';
 import './start-again.js';
@@ -79,6 +80,7 @@ import './air.js';
 import './garden-sounds.js';
 import './now-and-then.js';
 import './crunch.js';
+import './nut-clatter.js';
 import './creak.js';
 import './footsteps.js';
 import './animal-sounds.js';

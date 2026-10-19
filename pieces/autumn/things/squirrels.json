@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "kind": "thing",
+  "name": "squirrels",
+  "vars": {},
+  "frames": [
+    {
+      "title": "two red squirrels collecting the nuts: chatter when startled or watching, paws, claws on the trunk, a rustle as they leap, a tock as they pick one up",
+      "at": [20, 30],
+      "size": [830, 800],
+      "colour": "#b5532a"
+    }
+  ],
+  "nodes": {
+    "squirrels": { "type": "squirrels", "set": { "other": "the tree to the left" }, "at": [40, 80] },
+    "chatter": {
+      "type": "animal-call",
+      "set": { "animal": "squirrel chatter", "placed": true, "space": 0.3 },
+      "at": [320, 80]
+    },
+    "leap": {
+      "type": "rustle",
+      "set": { "seconds": 0.3, "volume": 0.6, "placed": true, "space": 0.25 },
+      "at": [320, 336]
+    },
+    "paws": {
+      "type": "footsteps",
+      "set": { "under": "earth", "weight": 0.12, "volume": 0.6, "space": 0.15 },
+      "at": [600, 80]
+    },
+    "claws": {
+      "type": "footsteps",
+      "set": { "under": "bark", "weight": 0.1, "volume": 0.6, "space": 0.15 },
+      "at": [600, 336]
+    },
+    "tock": {
+      "type": "nut-clatter",
+      "set": { "nuts": 1, "strength": 0.25, "volume": 1, "space": 0.15 },
+      "at": [600, 592]
+    }
+  },
+  "wires": [
+    ["squirrels.startled", "chatter.go"],
+    ["squirrels.chatter", "chatter.go"],
+    ["squirrels.leapt", "leap.go"],
+    ["squirrels.step", "paws.go"],
+    ["squirrels.scrabble", "claws.go"],
+    ["squirrels.took", "tock.go"]
+  ]
+}

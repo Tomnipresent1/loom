@@ -29,7 +29,7 @@ defineNode({
     startle: { type: 'number', value: 1, label: 'jumpiness', help: 'How easily she is startled: 0 = never, 1 = a cat, 2 = very jumpy.' },
     climbs: { type: 'number', value: 0.33, label: 'follows her up', help: 'How often she follows the girl up a branch she can walk up (one sloping up from the ground): 0 = never, 0.33 = one time in three, 1 = always. Out at the end of a branch she\'s stuck (too high to jump down) till the girl walks underneath her; then she turns and walks back down.' },
     chatty: { type: 'number', value: 1, help: 'How often she mews by herself: 0 = never (only at birds, or stuck); 1 = now and then (sitting a while; the girl jumping up a tree, leaving her below); 2 = a talkative cat.' },
-    watches: { type: 'number', value: 1, label: 'watches birds', help: 'Birds about (a Birds box): 0 = she ignores them; 1 = sitting, she watches them, now and then a short mew; 2 = she mews more.' },
+    watches: { type: 'number', value: 1, label: 'watches birds', help: 'Birds (or squirrels) about (a Birds or Squirrels box): 0 = she ignores them; 1 = sitting, she watches them, now and then a short mew; 2 = she mews more.' },
     colour: { type: 'colour', value: '#1c1a20', help: 'Her fur.' },
     eyes: { type: 'colour', value: '#e2c84a', help: 'Her eyes.' },
     size: { type: 'number', value: 1, help: '1 = an ordinary cat (about 60 long, 24 to the shoulder).' },
